@@ -1,0 +1,13 @@
+#!/bin/bash
+
+case `hostname` in
+  phi)		DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl --cpunodebind=1 AARTFAAC/AARTFAAC -p1 -n288 -t1808 -c64 -d0 -g0,1 -b16 -s1 -R0 -r4 -i file:/var/scratch/romein/aartfaac-test,file:/var/scratch/romein/aartfaac-test,file:/var/scratch/romein/aartfaac-test,file:/var/scratch/romein/aartfaac-test,file:/var/scratch/romein/aartfaac-test,file:/var/scratch/romein/aartfaac-test -o file:/var/scratch/romein/aartfaac-out "$@"
+  		;;
+
+  agc001)	DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 12-19 AARTFAAC/AARTFAAC -p1 -n288 -t1808 -c64 -d0 -g0,1 -b16 -s1 -R1 -r4 -i 10.99.100.1:53292,10.99.100.1:53293,10.99.100.1:53294,10.99.100.1:53295,10.99.100.1:53296,10.99.100.1:53297 -o file:visibilities "$@"
+		;;
+
+  #gpu02)	DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 AARTFAAC/AARTFAAC -p1 -n288 -t3072 -c64 -d0 -g0 -b16 -s8 -R1 -r5 -i 10.99.100.1:53268,10.99.100.1:53276,10.99.100.1:53284,10.99.100.1:53292,10.99.100.1:53300,10.99.100.1:53308 -o file:/tmp/sb3,null:,null:,null:,null:,null:,null:,null: "$@"
+  gpu02)	DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 ~romein/projects/Triple-A/AARTFAAC/AARTFAAC -p1 -n288 -t3072 -c64 -d0 -g0 -b16 -s8 -R1 -r720 -i 10.99.100.1:53268,10.99.100.1:53276,10.99.100.1:53284,10.99.100.1:53292,10.99.100.1:53300,10.99.100.1:53308 -o ./sb0,null:,null:,null:,null:,null:,null:,null: "$@" 2>&1 | tee sb0.log
+		;;
+esac
