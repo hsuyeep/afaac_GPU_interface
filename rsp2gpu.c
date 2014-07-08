@@ -68,8 +68,8 @@ typedef struct
 } UniBlkType;                                                                      
                                                                                    
 typedef struct                                                                     
-{ UniHdrType hdr;                                                                  
-  UniBlkType blk[2]; // Two timeslices                                             
+{ UniHdrType hdr;
+  UniBlkType blk[2]; // Two timeslices
 } UniUDPPktType;
 
 #define DEBUG 0
@@ -82,11 +82,14 @@ int main (int argc, char *argv[])
   UniBlkType *blk = NULL;
   int i = 0, j = 0, rd = 0;
   unsigned int pktno = 0, max = 0;
+  unsigned int prevseq[4] = {0,};
 
   int ts=0, sb=0, rsp=0, dip=0; 
 
   if (argc != 6)
-  { fprintf (stderr, "Usage: %s rsp0 rsp1 rsp2 rsp3 unifile\n", argv[0]); return -1;}
+  { fprintf (stderr, "Usage: %s rsp0 rsp1 rsp2 rsp3 unifile\n", argv[0]); 
+	return -1;
+  }
 
   fprintf (stderr, "Opening files...\n");
   for (i=0; i<4; i++)
@@ -102,29 +105,39 @@ int main (int argc, char *argv[])
     for (i=0; i<4; i++)
     { if ((rd=fread ((unsigned char*)(rsppkt+i), 1, sizeof (RSPPktType), 
 		   frsp[i])) != sizeof (RSPPktType))
-      { fprintf (stderr, "Error in packet rd %d from RSP board %d.\n", pktno, i);}
-  	if (max < rsppkt[i].hdr.timestamp) max = rsppkt[i].hdr.timestamp;
+      {fprintf(stderr, "Error in packet rd %d from RSP board %d.\n", pktno, i);}
+
+  	  if (max < rsppkt[i].hdr.timestamp) max = rsppkt[i].hdr.timestamp;
     }
     
-    // Align packets
+    // Align packets on timestamp + BSN number, so to absolute time.
     for (i=0; i<4; i++)
     { while (rsppkt[i].hdr.timestamp != max)
-      { if ((rd=fread ((unsigned char*)(rsppkt+i), 1, sizeof (RSPPktType), frsp[i]))
-             != sizeof (RSPPktType))
-        { fprintf (stderr, "Error in packet rd %d from RSP board %d.\n", pktno, i);
+      { if ((rd=fread ((unsigned char*)(rsppkt+i), 1, sizeof (RSPPktType), 
+			 frsp[i])) != sizeof (RSPPktType))
+        { fprintf(stderr, "Error in packet rd %d from RSP board %d.\n", 
+				  pktno, i);
         }
       }
     }
 
-    fprintf (stderr, "Pkt %d: %d  %d  %d  %d\n", pktno,
-			 rsppkt[0].hdr.timestamp, rsppkt[1].hdr.timestamp,            
-			 rsppkt[2].hdr.timestamp, rsppkt[3].hdr.timestamp); 
-  
+    fprintf (stderr, "Pkt %d: %d/%d  %d/%d  %d/%d  %d/%d\n", pktno,
+		 rsppkt[0].hdr.timestamp, rsppkt[0].hdr.blockSequenceNumber-prevseq[0],
+		 rsppkt[1].hdr.timestamp, rsppkt[1].hdr.blockSequenceNumber-prevseq[1],
+		 rsppkt[2].hdr.timestamp, rsppkt[2].hdr.blockSequenceNumber-prevseq[2],
+		 rsppkt[3].hdr.timestamp, rsppkt[3].hdr.blockSequenceNumber-prevseq[3]);
+
+    prevseq[0] =  rsppkt[0].hdr.blockSequenceNumber;
+    prevseq[1] =  rsppkt[1].hdr.blockSequenceNumber;
+    prevseq[2] =  rsppkt[2].hdr.blockSequenceNumber;
+    prevseq[3] =  rsppkt[3].hdr.blockSequenceNumber;
+
+
     // Reformat the packet contents into Uniboard output type.
     unipkt.hdr.nof_words_per_block = 768;
     unipkt.hdr.nof_blocks_per_packet = 2;
-    // Note that only the BSN of the first timeslice(of the two in a UniUDPPktType)
-    // is planted into the UniUDPPktType hdr.
+    // Note that only the BSN of the first timeslice(of the two in a 
+	// UniUDPPktType) is planted into the UniUDPPktType hdr.
     unipkt.hdr.rsp_bsn = rsppkt[0].hdr.blockSequenceNumber;
   
     for (ts=0; ts<16; ts++)
@@ -169,10 +182,11 @@ int main (int argc, char *argv[])
         }
       }
   
-      if (ts > 1 && ((ts%2) == 0))
+      if ((ts%2) == 1)
   	  { // Dispatch UniPktType, first derive BSN relative to that of the first 
-        // timeslice within the rsppacket.
-        unipkt.hdr.rsp_bsn = rsppkt[0].hdr.blockSequenceNumber + ts;
+        // timeslice within the rsppacket. Arbit. choose RSP0 for ref.
+        unipkt.hdr.rsp_bsn = (rsppkt[0].hdr.timestamp * (200000000/512) + 1)/2 + 
+							  rsppkt[0].hdr.blockSequenceNumber + ts;
   	    fwrite ((unsigned char*)(&unipkt), 1, sizeof (UniUDPPktType), funi);
   	  }
     } 
