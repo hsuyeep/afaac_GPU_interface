@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <stdint.h>
 #include <complex.h>
+#define _BSD_SOURCE
+#include <endian.h>
 
 // Data format of the RSP board output packets.
 #define NRRSPSUBBANDS 2  // NOTE: Only valid for 24Hr. observations!
@@ -45,11 +47,23 @@ typedef struct
   unsigned int rsp_station_id:16;
   unsigned int nof_words_per_block:16; // 8sbbands X 96 dipoles=768 (4B = 1 word)  
   unsigned int nof_blocks_per_packet:16;// 2                                       
+  unsigned long long rsp_bsn:50;        // Two timeslices share the same BSN     
   unsigned int rsp_sync:1;
   unsigned int rsp_reserved_0:13;
-  unsigned long long rsp_bsn:50;        // Two timeslices share the same BSN       
 }__attribute ((__packed__)) UniHdrType ;                                                  
-                                                                                   
+typedef struct
+{ unsigned long long field1;
+  unsigned short field2;
+  unsigned short field3;
+  unsigned short field4;
+  unsigned long long field5;
+}__attribute ((__packed__)) UniFieldType;
+
+typedef union
+{ UniHdrType hdr;
+  UniFieldType f;
+} HdrField;
+
 #define NRUNISUBBANDS 8                                                            
 #define NRUNIDIPOLES 96                                                               
 /* Uniboard data format:
@@ -79,7 +93,10 @@ int main (int argc, char *argv[])
   FILE *funi = NULL;
   RSPPktType rsppkt[4];
   UniUDPPktType unipkt;
+  HdrField f1, *f2 = (HdrField*) (&unipkt.hdr);
+  UniHdrType *hdr = (UniHdrType*) (&f1.hdr);
   UniBlkType *blk = NULL;
+
   int i = 0, j = 0, rd = 0;
   unsigned int pktno = 0, max = 0;
   unsigned int prevseq[4] = {0,};
@@ -135,11 +152,11 @@ int main (int argc, char *argv[])
 
 
     // Reformat the packet contents into Uniboard output type.
-    unipkt.hdr.nof_words_per_block = 768;
-    unipkt.hdr.nof_blocks_per_packet = 2;
+    hdr->nof_words_per_block = 768;
+    hdr->nof_blocks_per_packet = 2;
     // Note that only the BSN of the first timeslice(of the two in a 
 	// UniUDPPktType) is planted into the UniUDPPktType hdr.
-    unipkt.hdr.rsp_bsn = rsppkt[0].hdr.blockSequenceNumber;
+    hdr->rsp_bsn = rsppkt[0].hdr.blockSequenceNumber;
   
     for (ts=0; ts<16; ts++)
     { blk = &unipkt.blk[ts%2];
@@ -187,7 +204,24 @@ int main (int argc, char *argv[])
   	  { // Dispatch UniPktType, first derive BSN relative to that of the first 
         // timeslice within the rsppacket. Arbit. choose RSP0 for ref.
 		tmpbsn = rsppkt[0].hdr.timestamp * (200000000./512.);
-        unipkt.hdr.rsp_bsn = (tmpbsn + 1)/2 + rsppkt[0].hdr.blockSequenceNumber + ts;
+		tmpbsn = (tmpbsn + 1)/2 + rsppkt[0].hdr.blockSequenceNumber + ts;
+		// Rearrange the timestamp to match network order.
+
+        hdr->rsp_bsn = tmpbsn;
+		hdr->rsp_reserved_1 = 0;
+		hdr->rsp_rsp_clock = 0;
+		hdr->rsp_sdo_mode = 1;
+		hdr->rsp_lane_id = 0;
+		hdr->rsp_station_id = 768;
+		hdr->nof_words_per_block = 3; // 8sbbands X 96 dipoles=768 (4B = 1 word)  
+		hdr->nof_blocks_per_packet = 512;// 2
+		hdr->rsp_sync = 0;
+		hdr->rsp_reserved_0 = 0;
+		f2->f.field1 = htobe64 (f1.f.field1); 
+		f2->f.field2 = htobe16 (f1.f.field2);
+		f2->f.field3 = htobe16 (f1.f.field3);
+		f2->f.field4 = htobe16 (f1.f.field4);
+		f2->f.field5 = htobe64 (f1.f.field5); 
 		fprintf (stderr, "unb bsn: %llu/0x%LX \n", unipkt.hdr.rsp_bsn, unipkt.hdr.rsp_bsn);
   	    fwrite ((unsigned char*)(&unipkt), 1, sizeof (UniUDPPktType), funi);
   	  }
