@@ -83,6 +83,7 @@ int main (int argc, char *argv[])
   int i = 0, j = 0, rd = 0;
   unsigned int pktno = 0, max = 0;
   unsigned int prevseq[4] = {0,};
+  unsigned long long tmpbsn = 0;
 
   int ts=0, sb=0, rsp=0, dip=0; 
 
@@ -185,8 +186,9 @@ int main (int argc, char *argv[])
       if ((ts%2) == 1)
   	  { // Dispatch UniPktType, first derive BSN relative to that of the first 
         // timeslice within the rsppacket. Arbit. choose RSP0 for ref.
-        unipkt.hdr.rsp_bsn = (rsppkt[0].hdr.timestamp * (200000000/512) + 1)/2 + 
-							  rsppkt[0].hdr.blockSequenceNumber + ts;
+		tmpbsn = rsppkt[0].hdr.timestamp * (200000000./512.);
+        unipkt.hdr.rsp_bsn = (tmpbsn + 1)/2 + rsppkt[0].hdr.blockSequenceNumber + ts;
+		fprintf (stderr, "unb bsn: %llu/0x%LX \n", unipkt.hdr.rsp_bsn, unipkt.hdr.rsp_bsn);
   	    fwrite ((unsigned char*)(&unipkt), 1, sizeof (UniUDPPktType), funi);
   	  }
     } 

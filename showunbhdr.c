@@ -68,7 +68,7 @@ int main (int argc, char *argv[])
 		 != sizeof (UniUDPPktType)) 
 	  { fprintf (stderr, "Error in reading from file %d.\n", i); Done=1; break;}
 
-	  fprintf (stderr, "%llu ", uni[i].hdr.rsp_bsn); 
+	  fprintf (stderr, "%llu/0x%LX ", uni[i].hdr.rsp_bsn, uni[i].hdr.rsp_bsn); 
     }
 	fprintf (stderr, "\n");
     pktno++;
