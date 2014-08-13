@@ -1,0 +1,52 @@
+\documentclass {article}
+\usepackage[margin=1 in]{geometry}
+\usepackage{graphicx}
+
+\begin{document}
+
+\begin{figure*}
+\center{
+ \includegraphics [width=0.6\columnwidth]{uncal_cpu_ch32_6station.png}
+ \includegraphics [width=0.6\columnwidth]{uncal_cpu_ch32_6station_nodelay.png}
+ \includegraphics [width=0.6\columnwidth]{GPUcorr/gpucorr_uncalmap.png}
+ \caption {Uncalibrated 6station images. CPU correlated with inter station delays (top), without interstation delays applied (mid). 3kHz/1sec on 21-Nov-2013 00:06:30. (Bottom) GPU correlated uncalibrated image (3kHz/1sec) on 18 Jul 14shows the Sun.} 
+}
+\end{figure*}
+
+\begin{figure*}
+\center{
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs002.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs003.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs004.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs005.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs006.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs007.png}
+ \caption {Uncalibrated 6station and individual station images, CPU correlated. 3kHz/1sec on 21-Nov-2013 00:06:30} 
+}
+\end{figure*}
+
+\begin{figure*}
+\center{
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs002_nodelay.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs003_nodelay.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs004_nodelay.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs005_nodelay.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs006_nodelay.png}
+ \includegraphics [width=0.45\columnwidth]{uncal_cpu_ch32_cs007_nodelay.png}
+ \caption {Uncalibrated 6station and individual station images, CPU correlated.No station delays applied. 3kHz/1sec on 21-Nov-2013 00:06:31} 
+}
+\end{figure*}
+
+\begin{figure*}
+\center{
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs002.png}
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs003.png}
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs004.png}
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs005.png}
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs006.png}
+ \includegraphics [width=0.45\columnwidth]{GPUcorr/2014_cs007.png}
+ \caption {Uncalibrated 6station and individual station images, GPU correlated. 3kHz/1sec on live data, 18-Jul-2013} 
+}
+\end{figure*}
+
+\end{document}
