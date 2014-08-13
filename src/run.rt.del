@@ -1,0 +1,4 @@
+#!/bin/bash
+tstamp=`date +%d%b%g_%H%M%S`;
+echo $tstamp
+DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p1 -n288 -t3072 -c64 -d1 -g0 -b16 -s8 -R1 -r720 -i 10.99.100.1:53268,10.99.100.1:53276,10.99.100.1:53284,10.99.100.1:53292,10.99.100.1:53300,10.99.100.1:53308 -o file:sb0_$tstamp.bin,null:,null:,null:,null:,null:,null:,null:  2>&1 | tee gpucorr_$tstamp.log

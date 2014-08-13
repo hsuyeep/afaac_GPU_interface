@@ -1,0 +1,16 @@
+#!/bin/bash
+dat=${1:0:2};
+mon=${1:2:3};
+yr=${1:5:2};
+hr=${1:8:2};
+mm=${1:10:2};
+ss=${1:12:2};
+printf "Derived date of obs: $dat $mon 20$yr $hr:$mm:$ss\n"
+tstamp=`date --date="$dat $mon 20$yr $hr:$mm:$ss" +%c`
+printf "Derived timstamp   : $tstamp\n\n"
+# DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p1 -n288 -t3072 -c64 -d1 -g0 -b16 -s8 -R0 -r720 -i file:$1_53268.bin,file:$1_53276.bin,file:$1_53284.bin,file:$1_53292.bin,file:$1_53300.bin,file:$1_53308.bin -o file:sb0_$1_off.vis,null:,null:,null:,null:,null:,null:,null: -D "20$yr-$mon-$dat $hh:$mm:$ss" 2>&1 | tee gpucorr_off_$1.log
+
+# cmd="DISPLAY:=0 PLATFORM=\"AMD Accelerated Parallel Processing\" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p0 -n288 -t3072 -c64 -d1 -g0 -b16 -s8 -R0 -r720 -i file:$1_53276.bin,file:$1_53276.bin,file:$1_53276.bin,file:$1_53292.bin,file:$1_53276.bin,file:$1_53308.bin -o file:sb0_$1_off.vis,null:,null:,null:,null:,null:,null:,null: -D \"20$yr-$mon-$dat $hr:$mm:$ss\" 2>&1 | tee gpucorr_off_$1.log"
+# echo "Executing command: $cmd"
+DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p0 -n288 -t3072 -c64 -d1 -g0 -b16 -s8 -R0 -r720 -i file:$1_53276.bin,file:$1_53276.bin,file:$1_53276.bin,file:$1_53292.bin,file:$1_53276.bin,file:$1_53308.bin -o file:sb0_$1_off_del.vis,null:,null:,null:,null:,null:,null:,null: -D "20$yr-$mon-$dat $hr:$mm:$ss" 2>&1 | tee gpucorr_off_$1.log
+
