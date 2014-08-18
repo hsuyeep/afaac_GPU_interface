@@ -28,6 +28,8 @@ typedef struct
 
 int main (int argc, char *argv[])
 { FILE *fin = NULL;
+  int ch = 0;
+  int nchan = NR_CHANS;
 
   VisType *vis;
 
@@ -52,26 +54,19 @@ int main (int argc, char *argv[])
     fprintf (stderr, "Magic: 0x%x. t_start: %f, t_end:%f \n", vis->hdr.magic,
 			 vis->hdr.startTime, vis->hdr.endTime);
 
-	/* Write out a single chan,single pol. ACM.
+	/* Write out all chans,single pol. ACM.
  	 * chansel. selects the channel to write out.
 	 * vis->dat[blines][chans][pols];
  	 */
-    fprintf (stdout, "%f ", vis->hdr.startTime);
-/*
-	for (blind=0; blind<NR_BLINES; blind++)
-	// { float *bline = vis->dat + blind*2*NR_POL*NR_CHANS + chansel*2*NR_POL;
-	{ float *bline = vis->dat + blind*2*NR_POL + chansel*2*NR_POL*NR_BLINES;
-	  fprintf (stdout, "%.4f %.4f ", bline[0], bline[1]); // Re comes first.
-	}
-	fprintf (stdout, "\n");
-*/
-
-	for (blind=0; blind<NR_BLINES; blind++)
-	{ 
+	for (ch=0; ch<nchan; ch++)
+    { fprintf (stdout, "%f %d ", vis->hdr.startTime, ch);
+      for (blind=0; blind<NR_BLINES; blind++)
+	  { 
 	  // fprintf (stdout, "%.4f %.4f ", vis->dat[2*blind], vis->dat[2*blind+1]); // Re comes first.
-	  fprintf (stdout, "%.4f %.4f ", crealf(vis->dat[blind][31][0]), cimagf(vis->dat[blind][31][0])); // Re comes first.
-	}
-	fprintf (stdout, "\n");
+	    fprintf (stdout, "%.4f %.4f ", crealf(vis->dat[blind][ch][0]), cimagf(vis->dat[blind][31][0])); // Re comes first.
+	  }
+	  fprintf (stdout, "\n");
+    }
   }
   return 0;
 	
