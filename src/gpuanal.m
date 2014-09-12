@@ -65,7 +65,7 @@ title ('Image diff: no delay comp - neg. delay comp, 30ch/1sec avg, uncalib, CS0
 
 %%%%%%%%%%% CPU correlated output products.
 %%%%%%%%%%%
-fname = '../Data/SB002_LBA_OUTER_8b2sbr04_64ch_0006-0007_3khz.bin'; % Archive data with proper delay compensation
+fname = '../Data/SB002_LBA_OUTER_8b2sbr04_64ch_0006-0007_3khz.bin'; % Archive data with proper delay compensation, 1ch
 stat = [1 3 5];
 fid = fopen (fname, 'rb');
 [acc_cpu_1ch, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
@@ -78,7 +78,7 @@ imagesc (l,l,abs(map_cpu_1ch)); colorbar;
 title (sprintf ('1ch. avg, uncalib map from station %s: %s', num2str(stat),datestr(mjdsec2datenum(tobs_cpu))));
 fclose (fid);
 
-fname = '../Data/SB002_LBA_OUTER_8b2sbr04_nodelay_3khz.bin'; % Archive data with no delay compensation
+fname = '../Data/SB002_LBA_OUTER_8b2sbr04_nodelay_3khz.bin'; % Archive data with no delay compensation, 1ch
 stat = [1 3 5];
 fid = fopen (fname, 'rb');
 [acc_cpu_1ch_nodel, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
@@ -91,4 +91,29 @@ imagesc (l,l,abs(map_cpu_1ch_nodel)); colorbar;
 title (sprintf ('1ch. avg, uncalib map, no delay comp. from station %s: %s', num2str(stat),datestr(mjdsec2datenum(tobs_cpu))));
 fclose (fid);
 
+%%%%%%%%% 40 chan. averaged output
+fname = '../Data/SB002_LBA_OUTER_8b2sbr04_64ch_0006-0007.bin'; % Archive data with proper delay compensation, 1ch
+stat = [1 3 5];
+fid = fopen (fname, 'rb');
+[acc_cpu_40ch, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+[acc_cpu_40ch, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+[acc_cpu_40ch, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+load ('poslocal_outer.mat', 'poslocal');
+l = [-1:0.01:1];
+map_cpu_40ch = acm2skyimage (acc_cpu_40ch(goodant,goodant), poslocal(goodant,1), poslocal(goodant,2), fobs_cpu, l, l);
+imagesc (l,l,abs(map_cpu_40ch)); colorbar;
+title (sprintf ('40ch. avg, uncalib map from station %s: %s, CPU correlated', num2str(stat),datestr(mjdsec2datenum(tobs_cpu))));
+fclose (fid);
 
+fname = '../Data/SB002_LBA_OUTER_8b2sbr04_nodelay.bin'; % Archive data with no delay compensation, 40ch
+stat = [1 3 5];
+fid = fopen (fname, 'rb');
+[acc_cpu_40ch_nodel, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+[acc_cpu_40ch_nodel, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+[acc_cpu_40ch_nodel, tobs_cpu, fobs_cpu] = readms2float (fid, -1, -1, 288);
+load ('poslocal_outer.mat', 'poslocal');
+l = [-1:0.01:1];
+map_cpu_40ch_nodel = acm2skyimage (acc_cpu_40ch_nodel(goodant,goodant), poslocal(goodant,1), poslocal(goodant,2), fobs_cpu, l, l);
+imagesc (l,l,abs(map_cpu_40ch_nodel)); colorbar;
+title (sprintf ('40ch. avg, uncalib map, no delay comp. from station %s: %s, CPU correlated', num2str(stat),datestr(mjdsec2datenum(tobs_cpu))));
+fclose (fid);

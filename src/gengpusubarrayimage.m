@@ -18,7 +18,8 @@ function [acc, tobs, fobs, map, goodant] = gengpusubarrayimage(fname, chan, stat
 	if (deb > 0)
 		figure;
 		% Randomly choose a visibility, extract from all available chans.
-		vis_ch = dat (chan, 13321) + i*dat(chan,13322); 
+		% 288*48*2 + 48*4 + 30*2 = 30th visibility in the CS003xCS005 block
+		vis_ch = dat (chan, 27900) + i*dat(chan,27900); 
 		subplot (211);
 		plot (chan, 10*log10(abs(vis_ch)));
 		xlabel ('Chan'); ylabel ('Vis. mag (dB)');
