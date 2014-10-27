@@ -18,7 +18,7 @@ def main ():
 		sys.exit (-1);
 
 	nelem  = 288;       
-	nrec = 2;
+	nrec = 3;
 	nbline= nelem*(nelem+1)/2; 
 	nchan = 63;
 	npol = 4;
@@ -56,15 +56,32 @@ def main ():
 		 		doneRead = 1; break;
 	
 			(magic, pad0, startTime, endTime) = struct.unpack ("<IIdd", rec[0:24]);
-			print 'Start: %.2f, End: %.2f' % (startTime, endTime);
+			print 'Rec: %d, Start: %.2f, End: %.2f' % (ind, startTime, endTime);
 			tmp = numpy.reshape (numpy.asarray (struct.unpack ("ff"*nbline*nchan*npol, rec[512:])),[nbline, nchan, npol, 2]);
+
+			# Debug section to match rdgpuvis.c output
+			# print '%f', startTime;
+			# for tind in range (0, nbline):
+			#	print '%f %f ' % (tmp[tind][0][0][0], tmp[tind][0][0][1]);
+				
+
 			acm [ind] = tmp;
 			tobs[ind] = startTime;
 			# print 'Type of acm' , type(acm);
 			# print 'Shape of array: ', acm.shape;
 	
-		fname = '%s_%d-%d.mat'%(sys.argv[1], tobs[0], tobs[nrec-1]);
-		print 'Writing to file %s.\n' % fname;
+		if ind == 0: # First record of new file is incomplete
+			print 'First record corrupt! Not writing this set...';
+			break;
+		elif ind < nrec-1: # Managed to get some records, but not all
+			acm.resize ((ind, nbline,nchan,npol,2));
+			print 'Found lesser number of records!';
+			fname = '%s_%d-%d.mat'%(sys.argv[1], tobs[0], tobs[ind-1]);
+			print 'Writing to file %s.\n' % fname;
+		else:
+			fname = '%s_%d-%d.mat'%(sys.argv[1], tobs[0], tobs[ind]);
+			print 'Writing to file %s.\n' % fname;
+
 		sio.savemat (fname, {'acm':acm, 'tobs':tobs});
 
 	# ffloat.close ();

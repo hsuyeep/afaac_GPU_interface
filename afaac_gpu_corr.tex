@@ -15,41 +15,74 @@
 The AARTFAAC 6-station  correlator is currently a GPU  based system developed by
 John Romein. It is  implemented on AMD hardware, and is  based on a derivative of
 the  Cobalt CPU  correlator  for LOFAR.  This  document describes  the data  and
-control  flow from  the RSP  boards  to the  correlator output,  and shows  some
-initial correlator output.
+control  flow from  the RSP  boards  to the  correlator output. It documents
+the debugging of issues arising during the integration of the correlator into
+the real-time pipeline,  and describes the scripts and tests developed during
+this process. Some quirks of the system which might cause pitfalls during
+further commissioning are  also documented.
 
-\section {Correlator specs}
-\subsection {Data flow}
-\textbf {Intra  station:}Each LBA  dipole of  a station is  connected to  an RCU
-board,  which carries out  analog conditioning  and sampling.  4 RCU  boards are
-connected to an  RSP board, which implements the PFB  and subband selection. The
-RSP boards  generate a copy of  a subset of  the 512 subbands for  AARTFAAC, and
-have special  control registers to  configure AARTFAAC usage.   These additional
-subbands are  transmitted over the intra  station ring network, but  via the URI
-boards.  At  present, the  ring network bandwidth  allows 36  raw (unbeamformed)
-subbands of 16-bit to  be transmitted from each RSP board. This  can grow to 72,
-8-bit and 144,  4-bit subbands, by setting  the bit mode. The URI  boards (3 per
-station, each handling  4 RSP boards) reorganize the data such  that a subset of
-subbands from  its set of  4 RSP boards  are routed on a  single data lane  to a
-uniboard  Backnode (BN).   Thus, the  3 URI  boards route  36 subbands  from all
-dipoles to a single uniboard BN, 9 subbands per lane over 4 lanes.
+\section {Data flow}
+\textbf {Intra  station:}
+\begin {itemize} 
+  \item Each LBA antenna (consisting of two polarized outputs) of a station is
+    connected  to an  RCU board,  which  carries out  analog conditioning  and
+    sampling.  4  RCU boards are connected  to an RSP board,  which implements
+    the PFB and subband selection for LOFAR.  These selected subbands are then
+    beamformed in a regular LOFAR observation.  The station calibration tables
+    are applied during beamforming. 12 RSP  boards are needed to handle the 48
+    signal streams from the Dutch stations.
 
-Each of the 4 uniboard BNs receives 9 subbands from all dipoles. It selects 8 of
-the 9  subbands, packetizes them  by introducing a  src/dest IP address  and UDP
-port. All  BNs currently have the same  dest.  IP address, but  with a different
-port number for different stations.
+  \item Dipoles within a station are  connected to the digitizers (housed in a
+    station cabinet) over 3 different  lengths of cable. A coarse compensation
+    for the  delay differences in  the electrical  length of these  cables, as
+    well as  their gain equalization is  applied by the RSP  boards. The above
+    are common between LOFAR and AARTFAAC.
 
-A pair of BNs send their data over the mesh network to a single FrontNode. The
-FN acts as a  10Gig line handler, and transmits the data  as UDP packets which
-contain 2 subbands. Thus,  the packet rate from a station is  half the rate of
-the subbands.
+  \item The  AARTFAAC systen is independent  of LOFAR from this  stage, and is
+    called  the  Subband  Data  Offload  (SDO)  interface.   AARTFAAC  has  an
+    independent subband selection system, and  a copy of the selected subbands
+    are forwarded for correlation and imaging.  Note that since these are raw,
+    dipole level subbands, no station calibration has been applied on them.
 
-The data  are transmitted  over optical fibre  to Groningen. The  destination IP
-address and  port number  are hardcoded  in the station  firmware, with  a board
-level DIP switch to increment  or decrement these parameters. Thus, each station
-output is a  single 10GigE link, containing 8 subbands from  all 96 dipoles. All
-stations have the same IP address, but different UDP port numbers.\\
+  \item The  RSP boards generate a  copy of a  subset of the 512  subbands for
+    AARTFAAC, and have special control  registers to configure AARTFAAC usage.
+    These  additional subbands  are transmitted  over the  intra station  ring
+    network,  but  via the  Uniboard-RSP  board  Interface (URI)  boards.   At
+    present, the ring network bandwidth  allows 36 raw (unbeamformed) subbands
+    of 16-bit  to be  transmitted from each  RSP board. This  can grow  to 72,
+    8-bit and 144, 4-bit subbands, by setting  the bit mode. The URI boards (3
+    per station, each  handling 4 RSP boards) reorganize the  data such that a
+    subset of  subbands from its set  of 4 RSP  boards are routed on  a single
+    data lane to  a uniboard Backnode (BN).   Thus, the 3 URI  boards route 36
+    subbands from  all dipoles to  a single uniboard  BN, 9 subbands  per lane
+    over 4 lanes.
 
+  \item Each of  the 4 uniboard BNs  receives 9 subbands from  all dipoles. It
+    selects 8 of the 9 subbands,  packetizes them by introducing a src/dest IP
+    address and UDP  port. All BNs currently have the  same dest.  IP address,
+    but with a different port number for different stations.
+
+  \item  A pair  of BNs  send their  data over  the mesh  network to  a single
+    FrontNode. The FN acts as a 10Gig  line handler, and transmits the data as
+    UDP packets which contain 2 subbands. Thus, the packet rate from a station
+    is half the rate of the subbands.
+
+  \item  The  data  are  transmitted  over optical  fibre  to  Groningen.  The
+    destination  IP address  and  port  number are  hardcoded  in the  station
+    firmware, with  a board level DIP  switch to increment or  decrement these
+    parameters. Thus, each station output  is a single 10GigE link, containing
+    8 subbands from all 96 dipoles. All stations have the same IP address, but
+    different UDP port numbers.\\
+\end{itemize}
+
+\textbf{Central Correlator  (Groningen):} At  Groningen, the 10GbE  data links
+from  all stations  are  connected to  a  switch, which  has  a 40gbps  output
+link. This  is connected to  a single GPU  based correlator machine,  which is
+currently equipped  with a  Mellanox Technologies MT27500  Family [ConnectX-3]
+Ethernet/Infiniband card, and a [AMD/ATI] Tahiti PRO GL [FirePro Series] GPU.
+
+\section {Data Formats and Rates}
+\subsection {Uniboard output (per station)}
 The data packet  format of the frames generated by  the uniboard, and containing
 all the station data is:
 \begin{lstlisting}
@@ -81,23 +114,61 @@ typedef struct
 
 Note that the lower timeslice is in  blk[0]. The number of data bytes in the UDP
 payload  should  be:  2  (timesamples) * 8  (subbands) * 96  (dipoles)  *  4
-(Bytes/sample) = 6144 bytes.
+(Bytes/sample) = 6144 bytes. The header is 22 bytes, resulting in a packet
+size of 6166 Bytes at the correlator input.
+
+\textbf {Data  rates} 200MHz sampling clock,  12 bit sampling per  dipole, PFB
+applies a 1024 tap filter, resulting in subbands of 195312.5 Hz width.
+
+The Uniboard packs 2 samples of each  subband from every dipole of the station
+into  a single  packet, resulting  in a  packet rate  of ~100,000  packets per
+second  from each  station  at the  Correlator. This  translates  to ~6166B  *
+100,000,  or ~5  Gbps per  station, which  is sent  to the  GPU correlator  at
+Groningen over a 10Gbps fibre link.
+
+\subsection {Correlator output data  format} 
+The datastream is  a linearized 4-D array, with dimensions  of time, baseline,
+channel and  polarization.  Each  record has a  header with  meta information,
+followed by  a blob  of visibilities. The  data can be  directed to  a network
+port, or can be written to disk.  The header format is:
+\begin{verbatim}
+typedef  struct {
+      uint32_t magic;
+      uint32_t pad0;
+      double   startTime, endTime;
+      char     pad1[512 - 24];
+    }HdrType;
+\end{verbatim}
+The block of size
+\begin{verbatim}
+unsigned nr_baselines = 288 * 289 / 2;
+unsigned nr_channels = 63;
+unsigned nr_polarizations = 4;
+
+size_t block_size = header_size + sizeof(complex float) * nr_baselines *
+nr_channels * nr_polarizations;
+\end{verbatim}
+can be read for a single timeslice. Within the blob, the pol. index moves the
+fastest, followed by the channel, baseline and time indices.
 
 
-\textbf {Timing description:  RSP board packet} Every RSP board  of a station is
-fed an aligned PPS to mark absolute  time. This is generated at the center via a
-GPS, distributed to stations over  the SyncOptics board, and aligned between RSP
-boards  by the  PAC board  (Confirm?). The  RSP board  output  contains separate
-fields in the header relating to the  BSN and the absolute timestamp. The BSN is
-a  counter running  on the  output of  the 1024  sample FFT  engine,  i.e., BSNs
-increment every 1024  samples of 160/200MHz. The BSN counter  resets on the 1pps
-pulse. 
+\section {Timing Description}
+\textbf {RSP board packet} Every RSP board  of a station is fed an aligned PPS
+to mark absolute time. This is generated  at the center via a GPS, distributed
+to stations over  the SyncOptics board, and aligned between  RSP boards by the
+PAC board  (Confirm?). The RSP  board output  contains separate fields  in the
+header relating to  the BSN and the  absolute timestamp. The BSN  is a counter
+running on  the output  of the  1024 sample FFT  engine, i.e.,  BSNs increment
+every 1024 samples of 160/200MHz. The BSN counter resets on the 1pps pulse.
 
-Since an integer number of blocks does not exist within a second (195312.5/sec),
-the data is  split into an 'even' and  an 'odd' second. In the  even second, the
-BSN max  value is 195312, while  in the odd  second, it is 195313. Thus, absolute time to the second can be read off from the timestamp field, while absolute time within the second can be derived in steps of 5.12 usec from the BSN number.
+Since  an   integer  number  of  blocks   does  not  exist  within   a  second
+(195312.5/sec), the data is  split into an 'even' and an  'odd' second. In the
+even second,  the BSN  max value  is 195312, while  in the  odd second,  it is
+195313. Thus, absolute time  to the second can be read  off from the timestamp
+field, while absolute time  within the second can be derived  in steps of 5.12
+usec from the BSN number. 
 
-\textbf  {Timing description: Uniboard  packet} The  uniboard output  contains a
+\textbf  {Uniboard  packet} The  uniboard output  contains a
 single, 50-bit  Block Sequence  Number (BSN) value  which serves as  an absolute
 time in units of 5.12 usec. It is derived using the following formula from \cite{RP-1402}:
 \begin{lstlisting}
@@ -108,11 +179,8 @@ seconds,  and  the  FSN  is  the  BSN  of the  RSP  board  (counter  running  at
 1024/200MHz=5.12 usec intervals).
 
 
-\textbf{Remote site:} At  Groningen, the 10GbE data links  from all stations are
-connected to a switch, which has a  40gbps output link. This can be connected to
-a single GPU based correlator.
 
-\subsection {Control flow}
+\section {Control flow}
 \textbf {Station  level:} There are  96 RCUs corresponding  to the 2 pols  of 48
 antennas. These are  connected to 12 RSP boards per station,  catering to 4 RCUs
 of both pols per RSP board.  The RSPs are interconnected via a ring network. The
@@ -167,9 +235,16 @@ serve  X and  Y pols,  consecutive subband  numbers are  seen spread  over two
 consecutive RCUs. Hence, subband 591 corresponds to (591-1)/2 =subband 295 of
 the Y pol.\\
 
-The  uniboards can be treated as unilateral transmitters, although Rx and Tx packet counters can be read off their registers, and can be used to monitor the board. This becomes important because the Uniboard FPGAs have a factory image loaded on poweron, with the requirement of explicitly loading the AARTFAAC image.
+\textbf {AARTFAAC specific station hardware:}  A control machine for controlling  the uniboards is
+available   (lcu-aartfaac.control.lofar   (10.151.252.190),  accessible   from
+<username>@portal.lofar.eu)  The  uniboards  can   be  treated  as  unilateral
+transmitters,  although Rx  and  Tx  packet counters  can  be  read off  their
+registers,  and can  be used  to monitor  the board.   This becomes  important
+because the  Uniboard FPGAs have a  factory image loaded on  poweron, with the
+requirement of explicitly  loading the AARTFAAC image. Details  on the control
+of AARTFAAC uniboards is available in \cite{RP-1463}.
 
-\textbf {At Groningen} The correlator machine is currently gpu02.das4.astron.nl,
+\textbf {GPU Correlator:} The correlator machine is currently gpu02.das4.astron.nl,
 and is a part  of the DAS4 cluster.  It will ultimately  be moved to a dedicated
 machine with twin  GPUS. The correlator sources and binaries  are located in the
 ~romein/projects/Triple-A/AARTFAAC folder.  The file hierarchy is expected to be
@@ -207,36 +282,59 @@ Other interesting options are:
 -S4    = Number of generated stokes(?)
 \end{verbatim}
 
+\section {Correlator debugging}
+
+
+\section {Helper programs}
+All helper programs (as well as the latest copy of this document) are
+available on github:afaac_GPU_corr/src. The Uniboard_FP7 scripts are available
+on svn at https://svn.astron.nl/UniBoard_FP7/Aartfaac/trunk/Software/python/apps/aartfaac_sdo/
+
+\begin {itemize}
+  \item check_stations.sh: Bash script to dump packets from the 40Gbps
+    interface on the GPU machine, a crude check on whether stations are
+    sending data.\\ NOTE: A better check is the eth2_packet_rate.py program,
+    which calculates the rate of incoming packets. If all stations are sending
+    data, the received data rate on the GPU machine should be ~29 Gbps.
+
+  \item \textbf{Raw data dump to disk:} Use udp-copy.c (author John Romein). A
+    snapshot of this is available within teh afaac_GPU_corr repository.
+  
+  \item udp_copy_stations.sh: Script which uses udp-copy underneath. Creates
+    raw (uniboard) data files corresponding to each station in /tmp (which is
+    an SSD) with an appropriate local timestamp.
+
+  \item showvisrawtime.c: Prints out the timestamps in unix time for the
+    binary visibilities written to disk by the correlator. To convert to time
+    in the current timezone, use the command date -d @<timeoutput as unixtime> 
+
+  \item gpu2mat.py: convert the full-pol, 63 channel visibility data generated
+    by the GPU correlator into a .mat file of visibilities.
+
+  \item showgpuacm.m: Matlab script to take the output of gpu2mat.py and
+    display the covariance matrix of each integration time on an updating figure.
+
+  \item rsp2gpu.c: Converts dipole level subbanded data as recorded by LOFAR
+    infrastructure during earlier AARTFAAC trial observations into 
+
+  \item  run.off.[del|nodel]: Script to run the correlator in offline mode, on the
+    output of udp_copy_stations.sh. Takes the timestamp as a command line
+    input. Separate scripts for applying offline inter station delay
+    correction via phase ramps.
+
+  \item run.rt.[del|nodel]: Similar to above, but in real-time mode.
+
+  \item run.rt.nodel.ais: Similar to above, but now writing out visibility
+    data to the ais001.control.lofar machine.
+
+\end{itemize}
+
 \section {Data}
 Data was recorded from the GPU correlator, with the output being written to
 disk. The helper program showrawtime.c extracts out just the timestamp from
 large datasets to determine if any time samples are missed. (Who generates the
 timestamps?). 
 
-\textbf{Output data  format} The  datastream is a  linearized 4-D  array, with
-dimensions  of time,  baseline, channel  and polarization.  Each record  has a
-header with meta  information, followed by a blob of  visibilities. The data
-can be directed to a network port, or can be written to disk. The header
-format is:
-\begin{verbatim}
-typedef  struct {
-      uint32_t magic;
-      uint32_t pad0;
-      double   startTime, endTime;
-      char     pad1[512 - 24];
-    }HdrType;
-\end{verbatim}
-The block of size
-\begin{verbatim}
-unsigned nr_baselines = 288 * 289 / 2;
-unsigned nr_channels = 63;
-unsigned nr_polarizations = 4;
-
-size_t block_size = header_size + sizeof(complex float) * nr_baselines *
-nr_channels * nr_polarizations;
-\end{verbatim}
-can be read for a single timeslice. Within the blob, the pol. index moves the
-fastest, followed by the channel, baseline and time indices.
 
 The script gpu2mat.py converts the incoming data to a 4D complex array with dimensions
 of time, bline, chan, pol, and writes it as a .mat file. The script
@@ -349,7 +447,9 @@ if __name__ == "__main__":
 
 \bibitem {RP-1402} LOFAR RSP – SDO Interface Specification, ASTRON-RP-1402
 
-\bibitem {RP-1403} UniBoard – UDP – SDO Interface Specification, ASTRON-RP-1403
+\bibitem {RP-1403} UniBoard – UDP – SDO Interface Specification,
+  ASTRON-RP-1403
+\bibitem {RP-1462} AARTFAAC Subband data offload manual, ASTRON RP-1462
 
 \end{thebibliography}
 \end{document}

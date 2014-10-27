@@ -58,15 +58,29 @@ int main (int argc, char *argv[])
  	 * chansel. selects the channel to write out.
 	 * vis->dat[blines][chans][pols];
  	 */
+
 	for (ch=0; ch<nchan; ch++)
     { fprintf (stdout, "%f %d ", vis->hdr.startTime, ch);
       for (blind=0; blind<NR_BLINES; blind++)
 	  { 
 	  // fprintf (stdout, "%.4f %.4f ", vis->dat[2*blind], vis->dat[2*blind+1]); // Re comes first.
-	    fprintf (stdout, "%.4f %.4f ", crealf(vis->dat[blind][ch][0]), cimagf(vis->dat[blind][31][0])); // Re comes first.
+	    fprintf (stdout, "%.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f ", crealf(vis->dat[blind][ch][0]), cimagf(vis->dat[blind][ch][0]), crealf(vis->dat[blind][ch][1]), cimagf(vis->dat[blind][ch][1]), crealf(vis->dat[blind][ch][2]), cimagf(vis->dat[blind][ch][2]), crealf(vis->dat[blind][ch][3]), cimagf(vis->dat[blind][ch][3])); // Re comes first.
 	  }
 	  fprintf (stdout, "\n");
     }
+
+
+#if 0
+	for (ch=0; ch<nchan; ch++)
+    { fprintf (stdout, "%f %d ", vis->hdr.startTime, ch);
+      for (blind=0; blind<NR_BLINES; blind++)
+	  { 
+	  // fprintf (stdout, "%.4f %.4f ", vis->dat[2*blind], vis->dat[2*blind+1]); // Re comes first.
+	    fprintf (stdout, "%.4f %.4f ", crealf(vis->dat[blind][ch][0]), cimagf(vis->dat[blind][ch][0])); // Re comes first.
+	  }
+	  fprintf (stdout, "\n");
+    }
+#endif
   }
   return 0;
 	
