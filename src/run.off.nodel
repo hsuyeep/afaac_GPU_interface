@@ -12,5 +12,5 @@ printf "Derived timstamp   : $tstamp\n\n"
 
 # cmd="DISPLAY:=0 PLATFORM=\"AMD Accelerated Parallel Processing\" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p0 -n288 -t3072 -c64 -d1 -g0 -b16 -s8 -R0 -r720 -i file:$1_53276.bin,file:$1_53276.bin,file:$1_53276.bin,file:$1_53292.bin,file:$1_53276.bin,file:$1_53308.bin -o file:sb0_$1_off.vis,null:,null:,null:,null:,null:,null:,null: -D \"20$yr-$mon-$dat $hr:$mm:$ss\" 2>&1 | tee gpucorr_off_$1.log"
 # echo "Executing command: $cmd"
-DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 Triple-A/AARTFAAC/installed/AARTFAAC -p0 -n288 -t3072 -c64 -d0 -g0 -b16 -s8 -R0 -r720 -i file:$1_53276.bin,file:$1_53276.bin,file:$1_53276.bin,file:$1_53292.bin,file:$1_53276.bin,file:$1_53308.bin -o file:sb0_$1_off_nodel.vis,null:,null:,null:,null:,null:,null:,null: -D "20$yr-$mon-$dat $hr:$mm:$ss" 2>&1 | tee gpucorr_off_$1.log
+DISPLAY=:0 PLATFORM="AMD Accelerated Parallel Processing" TYPE=GPU numactl -C 11-19 ~/gpu-corr/Triple-A/AARTFAAC/installed/AARTFAAC -p0 -n288 -t3072 -c64 -d0 -g0,1 -b16 -s8 -R0 -r4 -i file:$1_53268.bin,file:$1_53276.bin,file:$1_53284.bin,file:$1_53292.bin,file:$1_53300.bin,file:$1_53308.bin -o file:sb0_$1_off_nodel.vis,null:,null:,null:,null:,null:,null:,null: -D "20$yr-$mon-$dat $hr:$mm:$ss" 2>&1 | tee gpucorr_off_$1.log
 
