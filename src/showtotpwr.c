@@ -49,8 +49,8 @@ int main(int argc, char *argv[])
   }
 
   size_t block_size = header_size + sizeof(complex float) * nr_baselines * nr_channels * nr_polarizations;
-  fprintf (stderr, "Filesize: %d, Blocksize: %lld bytes, Nblks: %d\n", 
-		   (unsigned long long)sb.st_size, block_size, floor ((unsigned long long)sb.st_size/block_size));
+  fprintf (stderr, "Filesize: %d, Blocksize: %lld bytes, Nblks: %f\n", 
+		   (unsigned long long)sb.st_size, block_size, (floor ((unsigned long long)sb.st_size/block_size)));
   unsigned time = 0;
   for (time = 0; time * block_size < sb.st_size; time ++) 
   { complex float *block = mmap(0, block_size, PROT_READ, MAP_SHARED, fd, time * block_size);
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 				channel * nr_polarizations + polarization];
 		  pol_pwr += cabs(ptr[0]);
         }
-       printf("%f ", pol_pwr);
+       printf("%20.2f  %5.2f", pol_pwr, 10*log10(pol_pwr));
     }
 	printf ("\n");
 

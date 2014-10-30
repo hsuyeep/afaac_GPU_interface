@@ -44,7 +44,12 @@ def main ():
 	print 'Header/rec size : %d/%d bytes' % (hdrsize, recsize);
 	print 'Records per file: %d' % nrec;
 	# open file
-	fin = open (sys.argv[1], "rb");
+	try:
+		fin = open (sys.argv[1], "rb");
+	except IOError:
+		print 'File ',sys.argv[1],' does not exist!. Quitting...';
+		return -1; 
+	
 	ind = 0;
 	doneRead = 0;
 	while doneRead == 0:
