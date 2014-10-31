@@ -243,7 +243,7 @@ if __name__ == '__main__':
 		print '### Numpy and/or scipy not found; unable to proceed.';
 		sys.exit(-1);
 
-	sb = subbandHandler (sys.argv[1], 'sb0');
+	sb = subbandHandler (sys.argv[2], 'sb0');
 	im = imager (500, 'dft', 60000000);
 	irec = 0;
 
