@@ -2,8 +2,9 @@
 # Script to generate uncalibrated images from a live (RT) GPU visibility stream.
 # pep/29Oct14
 
-import sys
-import socket
+import sys;
+import socket;
+import optparse;
 try:
 	import numpy;
 	numpyFound = 1;
@@ -252,7 +253,8 @@ if __name__ == '__main__':
 	skymap = im.createImageDFT (acm, tobs, fobs, [1, 0, 0,0]);
 
 	# Generate output file name based on first timeinstant
-	fname = '%.0f_images.bin' % tobs;
+	fname = '%s/%.0f_images.bin' % (sys.argv[1],tobs);
+	print '--> Writing to directory ', sys.argv[1];
 	fid = open (fname, "wb");
 
 	if matplotFound == 1:
@@ -269,7 +271,7 @@ if __name__ == '__main__':
 			imgplt.set_data (skymap);
 			plt.draw();
 			plt.title ('XX - %f' % tobs);
-			plt.savefig ('%.0f_XX.png' % tobs);
+			plt.savefig ('%s/%.0f_XX.png' % (sys.argv[1],tobs));
 		# else:
 		im.writeImgToFile (fid);
 		irec = irec + 1;
