@@ -31,7 +31,7 @@ class subbandHandler:
 	
 	# Public variables, shared between all class instances.
 	Sb2Port = {'sb0':5556, 'sb1':5556};
-	Nsec2Rd = 10; # -1 indicates read infinitely
+	Nsec2Rd = 10000; # -1 indicates read infinitely
 	Nelem  = 288;       
 	Nbline= Nelem*(Nelem+1)/2; 
 	Nchan = 63;
