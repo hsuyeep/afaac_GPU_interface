@@ -31,7 +31,7 @@ class subbandHandler:
 	
 	# Public variables, shared between all class instances.
 	Sb2Port = {'sb0':5556, 'sb1':5556};
-	Nsec2Rd = 10; # -1 indicates read infinitely
+	Nsec2Rd = 10000; # -1 indicates read infinitely
 	Nelem  = 288;       
 	Nbline= Nelem*(Nelem+1)/2; 
 	Nchan = 63;
@@ -243,7 +243,7 @@ if __name__ == '__main__':
 		print '### Numpy and/or scipy not found; unable to proceed.';
 		sys.exit(-1);
 
-	sb = subbandHandler (sys.argv[1], 'sb0');
+	sb = subbandHandler (sys.argv[2], 'sb0');
 	im = imager (500, 'dft', 60000000);
 	irec = 0;
 
