@@ -89,10 +89,10 @@ function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, c
 	map = zeros (nrec, length(l), length(l), npol);
 
 	tind = 1;
-	% for tind = 1:nrec
+	for tind = 1:nrec
 		fprintf (1, '--> Imaging timeslice %d...\n', tind);
-		pind = 1;
-		% for pind = 1:npol
+		% pind = 1;
+		for pind = 1:npol
 			map(tind,:,:,pind) = acm2skyimage (squeeze(acm_t(tind, :,:, pind)), poslocal(goodant,1), poslocal(goodant,2), fobs, l, l);
 
 			if (deb > 0)
@@ -107,5 +107,5 @@ function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, c
 				tstamp = strcat (r1,'\_', r2);
 				title (sprintf ('[%d:%d] ch. avg, uncalib map from station %s: %s', chan(1), chan(end), num2str(stat),tstamp));
 			end;
-		% end;
-	% end;
+		end;
+	end;

@@ -17,7 +17,7 @@ if __name__ == "__main__":
 	lineno = 0;
 	fl_prog = re.compile ('\[(\d+)s, (\d+)\], stats (\d+)-(\d+); flagged: ([-+]?(\d+(\.\d*)?))% \((\d+)\)');
 	tim_prog = re.compile ('time: \[(\d+)s, (\d+)\], late: ([-+]?(\d+(\.\d*)?))s, exec: ([-+]?(\d+(\.\d*)?))');
-	max_size = 30000;
+	max_size = 300000;
 
 	tim = numpy.zeros (max_size, dtype=numpy.int);
 	t_late = numpy.zeros (max_size, dtype=numpy.float);
@@ -73,7 +73,11 @@ if __name__ == "__main__":
 	hist(t_exec[1:lineno]);
 
 	figure(2);
-	for st in range (0,6):
-		subplot (3,2,st);
+	for st in range (0,12):
+		subplot (2,6,st);
+		plot (tim[1:lineno], st_flag[st][0:lineno]);
+		xlabel ('Time'); ylabel ('Flag %');
+
+		subplot (2,6,6+st);
 		hist (st_flag[st][0:lineno]);
 	show();
