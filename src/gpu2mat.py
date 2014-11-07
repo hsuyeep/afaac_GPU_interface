@@ -18,7 +18,7 @@ def main ():
 		sys.exit (-1);
 
 	nelem  = 288;       
-	nrec = 60;
+	nrec = 30;
 	nbline= nelem*(nelem+1)/2; 
 	nchan = 63;
 	npol = 4;
@@ -61,7 +61,7 @@ def main ():
 		 		doneRead = 1; break;
 	
 			(magic, pad0, startTime, endTime) = struct.unpack ("<IIdd", rec[0:24]);
-			print 'Rec: %d, Start: %.2f, End: %.2f' % (ind, startTime, endTime);
+			print 'Rec: %04d, Start: %.2f, End: %.2f' % (ind, startTime, endTime);
 			tmp = numpy.reshape (numpy.asarray (struct.unpack ("ff"*nbline*nchan*npol, rec[512:])),[nbline, nchan, npol, 2]);
 
 			# Debug section to match rdgpuvis.c output

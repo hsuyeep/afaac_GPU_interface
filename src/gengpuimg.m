@@ -7,6 +7,7 @@
 % 	chan  : A selection of channels, which are averaged before imaging.
 % flagant : Antennas to flag before forming the image.
 %  calx/y : Calibration complex vectors, output of readafaaccaltab()
+%     img : Bool turning imaging on or off.
 % Incoming ACM dimensions: [time][bline][chan][pol][re/im]
 % Results:
 %  acm_t : Reshaped complex acm with calibration vector applied.
@@ -17,7 +18,7 @@
 
 % pep/22Oct14
 
-function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, calx, caly, deb)
+function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, calx, caly, img, deb)
 	addpath ~/WORK/AARTFAAC/Afaac_matlab_calib/
 
 	nrec = size (acm, 1);
@@ -83,29 +84,51 @@ function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, c
 		end;
 	end;
 
-	% Imaging part
-	load ('poslocal_outer.mat', 'poslocal');
-	l = [-1:0.01:1];
-	map = zeros (nrec, length(l), length(l), npol);
+	if img == 1
+		% Imaging part
+		load ('poslocal_outer.mat', 'poslocal');
+		l = [-1:0.01:1];
+		% map = zeros (nrec, length(l), length(l), npol);
+		map = zeros (nrec, 512, 512, npol);
 
-	tind = 1;
-	for tind = 1:nrec
-		fprintf (1, '--> Imaging timeslice %d...\n', tind);
-		% pind = 1;
-		for pind = 1:npol
-			map(tind,:,:,pind) = acm2skyimage (squeeze(acm_t(tind, :,:, pind)), poslocal(goodant,1), poslocal(goodant,2), fobs, l, l);
+	    uloc = meshgrid (poslocal(:,1)) - ... 
+				meshgrid (poslocal (:,1)).';
+	    vloc = meshgrid (poslocal(:,2)) - ... 
+				meshgrid (poslocal (:,2)).';
+		[uloc_flag, vloc_flag] = gen_flagged_uvloc (uloc, vloc, flagant); 
 
-			if (deb > 0)
-				figure(fdeb);
-				subplot(2,2,pind);
-				% imagesc (l,l,10*log10(abs(map))); colorbar;
-				imagesc (l,l,abs(map(tind,:,:,pind))); colorbar;
-				cmd = sprintf ('date -d @%f +%%d%%b%%g', tobs);
-				[~, r1] = system (cmd);
-				cmd = sprintf ('date -d @%f +%%H%%M%%S', tobs);
-				[~, r2] = system (cmd);
-				tstamp = strcat (r1,'\_', r2);
-				title (sprintf ('[%d:%d] ch. avg, uncalib map from station %s: %s', chan(1), chan(end), num2str(stat),tstamp));
+		gparm.type = 'pillbox';
+		gparm.lim = 0;
+		gparm.duv = 0.5; 
+		gparm.Nuv = 500;
+		gparm.uvpad = 512; 
+		gparm.fft = 1;
+	
+		tind = 1;
+		for tind = 1:nrec
+			fprintf (1, '--> Imaging timeslice %d...\n', tind);
+			% pind = 1;
+			for pind = 1:npol
+				% Slow DFT imaging;
+				% map(tind,:,:,pind) = acm2skyimage (squeeze(acm_t(tind, :,:, pind)), poslocal(goodant,1), poslocal(goodant,2), fobs, l, l);
+	
+	    		[map(tind, :, :, pind), calmap, calvis, l, m] = ... 
+					fft_imager_sjw_radec (acm_t(tind, :, :, pind), uloc_flag(:), vloc_flag(:), ... 
+										gparm, [], [], tobs_mjdsec(tind), fobs, 0);
+				if (deb > 0)
+					figure(fdeb);
+					subplot(2,2,pind);
+					% imagesc (l,l,10*log10(abs(map))); colorbar;
+					imagesc (l,l,abs(map(tind,:,:,pind))); colorbar;
+					cmd = sprintf ('date -d @%f +%%d%%b%%g', tobs);
+					[~, r1] = system (cmd);
+					cmd = sprintf ('date -d @%f +%%H%%M%%S', tobs);
+					[~, r2] = system (cmd);
+					tstamp = strcat (r1,'\_', r2);
+					title (sprintf ('[%d:%d] ch. avg, uncalib map from station %s: %s', chan(1), chan(end), num2str(stat),tstamp));
+				end;
 			end;
 		end;
+	else
+		map = [];
 	end;
