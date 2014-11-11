@@ -17,15 +17,16 @@ keywords = ['exec', 'stats'];
 if __name__ == "__main__":
 	# print '--> Operating on log file ', sys.argv[1];
 	lineno = 0;
+	fl_lineno = 0;
 	fl_prog = re.compile ('\[(\d+)s, (\d+)\], stats (\d+)-(\d+); flagged: ([-+]?(\d+(\.\d*)?))% \((\d+)\)');
 	tim_prog = re.compile ('time: \[(\d+)s, (\d+)\], late: ([-+]?(\d+(\.\d*)?))s, exec: ([-+]?(\d+(\.\d*)?))');
-	max_size = 300000;
+	max_size = 600000;
 
 	tim = numpy.zeros (max_size, dtype=numpy.int);
-	t_late = numpy.zeros (max_size, dtype=numpy.float);
-	t_exec = numpy.zeros (max_size, dtype=numpy.float);
-	st_tim = numpy.zeros ((6, max_size), dtype=numpy.float);
-	st_flag = numpy.zeros ((6, max_size), dtype=numpy.float);
+	t_late = numpy.zeros (max_size, dtype=numpy.float16);
+	t_exec = numpy.zeros (max_size, dtype=numpy.float16);
+	st_tim = numpy.zeros ((6, max_size), dtype=numpy.float16);
+	st_flag = numpy.zeros ((6, max_size), dtype=numpy.float16);
 
 	# with open (sys.argv[1], 'r') as f:
 	if sys.argv[1] == '-':
@@ -56,7 +57,9 @@ if __name__ == "__main__":
 				print '### Station: ', st;
 			st_tim[st][lineno] = mat.group(1); # Time of this record
 			st_flag[st][lineno] = mat.group(5); # % data flagged.
-			# lineno = lineno+1;
+			# print 'St: %d, Tim: %.0f, linno: %d, flag:%.2f'%(st,float(mat.group(1)),lineno,float(mat.group(5)));
+			# if st == 5:
+		# 		lineno = lineno+1;
 			
 		else:
 			continue;
@@ -69,7 +72,8 @@ if __name__ == "__main__":
 	fig1 = figure(figsize=(12,6));
 
 	ax = fig1.add_subplot (2,2,1);
-	plot ((tim[1:lineno]-tim[1])/3600.0, t_late[1:lineno]); # Ignore first record
+	# plot ((tim[1:lineno]-tim[1])/3600.0, t_late[1:lineno]); # Ignore first record
+	plot (tim[1:lineno]-tim[1], 'o'); # Ignore first record
 	xlabel ('Time (hours from %s)'%(datetime.datetime.fromtimestamp (tim[1])));
 	ylabel ('Late');
 

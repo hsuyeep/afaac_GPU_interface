@@ -129,7 +129,8 @@ class subbandHandler:
 		self._vis = numpy.reshape (numpy.asarray (struct.unpack ("ff"*self.Nbline*self.Nchan*self.Npol, rec[512:])),[self.Nbline, self.Nchan, self.Npol, 2]);
 
 		# Integrating over all channels in a subband;
-		self._vis_int = numpy.mean (self._vis, axis=1);
+		# self._vis_int = numpy.mean (self._vis, axis=1);
+		self._vis_int = self._vis[:,32,:,:];
 
 		# NOTE: Required to set acm to zero due to accumulation on _acm_resh,
 		# which is a view (referenced object).
@@ -151,12 +152,12 @@ class imager:
 
 	def __init__ (self, npix=512, mode='dft', fobs=60000000, sbnum='sb0', Npol=1):
 		self._npix = npix;
+		self._Npol = Npol;
 		self._skymap = numpy.asmatrix(numpy.zeros([self._npix, self._npix], 'f'));
 		self._tobs = -1; 
 		self._fobs = fobs;
 		self._mode = mode;
 		self._sbnum = sbnum;
-		self._Npol = Npol;
 		self._meta = ctypes.create_string_buffer(subbandHandler.Hdrsize); # 512Byte file header.
 		print '--> Creating Imager in %s mode with npix %d' % (self._mode, self._npix);
 
@@ -258,7 +259,7 @@ class imager:
 		self.gridVis (acm.flatten(1));
 
 		# compute image
-		self._skymap = numpy.fft.fftshift(numpy.fft.fft2(self._gridvis));
+		self._skymap[:,:] = numpy.fft.fftshift(numpy.fft.fft2(self._gridvis));
 		return self._skymap;
 
 	""" Function reads a file containing images written by writeImgToFile and 
@@ -289,62 +290,85 @@ class imager:
 		# import pdb; pdb.set_trace();
 		t = numpy.fromfile (fid, dtype='float32',count=2);		
 		print 'tobs: %f, fobs: %f'% (t[0], t[1]);
-		img = numpy.fromfile (fid, dtype='float32',count=int(self._npix*self._npix));
+		img = numpy.fromfile (fid, dtype='float32',count=int(self._Npol, self._npix*self._npix));
 		return t[0], t[1], img;
 		
 
 class pltImage:
 	'Class representing a plot device on which images are shown'
 
-	def __init__ (self, im, fprefix='./', wrpng=1,pltmoon=0):
+	def __init__ (self, im, location, fprefix='./',  wrpng=1, pltmoon=0):
 		self._wrpng = wrpng;
 		self._im = im;
 		self._fprefix = fprefix;
 		self._pltmoon = pltmoon;
+		self._loc = location;
+
+		# Available locations
+		if self._loc.lower() == 'lofar':
+			self._obssite = ephem.Observer();
+			self._obssite.pressure = 0; # To prevent refraction corrections.
+			self._obssite.lon, self._obssite.lat = '6.869837540','52.915122495'; # CS002 on LOFAR
+		elif self._loc.lower() == 'dwingeloo':
+			self._obssite = ephem.Observer();
+			self._obssite.pressure = 0; # To prevent refraction corrections.
+			self._obssite.lon, self._obssite.lat = '6.396297','52.812204'; # Dwingeloo telescope
+		else:
+			print 'Unknown observatory site!'
 
 		if self._pltmoon == 1:
-			self._dwing = ephem.Observer();
-			self._dwing.lon, self._dwing.lat = '6.396297','52.812204'; # Dwingeloo telescope
 			self._moon = ephem.Moon();
+			self._casa = ephem.readdb('Cas-A,f|J, 23:23:26.0, 58:48:00,99.00,2000');
 
 		if matplotFound ==0 & ephemFound == 0:
 			print 'Matplotlib or pyephem not found! PNG Images written to disk.'
 			self._wrpng = 1;
 		else:
-			self._imgplt = plt.imshow (abs(self._im._skymap), extent = [self._im._l[0], self._im._l[-1], self._im._m[0], self._im._m[-1]]);
+			self._imgplt = plt.imshow (abs(self._im._skymap[:,:]), extent = [self._im._l[0], self._im._l[-1], self._im._m[0], self._im._m[-1]]);
 			plt.colorbar();
 			# plt.show();
 
 	def showImg (self):
 		if self._pltmoon == 1:
 			# Convert UTC unix time to datetime
-			self._dwing.date = datetime.datetime.fromtimestamp(self._im._tobs); 
+			self._obssite.date = datetime.datetime.fromtimestamp(self._im._tobs); 
 
 			# Compute azi/alt
-			self._moon.compute(self._dwing);
+			self._moon.compute(self._obssite);
+			self._casa.compute(self._obssite);
+
 
 			if self._moon.alt < 0:
-				print 'Moon below horizon at time ', _dwing.date;
+				print 'Moon below horizon at time ', _obssite.date;
 			else:
 				# Compute l,m of moon's position, in units of array indices
 
 				moon_l = -(numpy.cos(self._moon.alt) * numpy.sin(self._moon.az));
 				moon_m =  (numpy.cos(self._moon.alt) * numpy.cos(self._moon.az)); 
-				print 'l/m: %f, %f' % (moon_l, moon_m);
+				# print 'l/m: %f, %f' % (moon_l, moon_m);
 				moon_l = moon_l/self._im._dl + self._im._npix/2;
 				moon_m = moon_m/self._im._dl + self._im._npix/2;
-				print 'Moon: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._moon.ra, self._moon.dec, self._moon.alt, self._moon.az, moon_l, moon_m, self._im._dl);
+				# print 'Moon: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._moon.ra, self._moon.dec, self._moon.alt, self._moon.az, moon_l, moon_m, self._im._dl);
+
+				casa_l = -(numpy.cos(self._casa.alt) * numpy.sin(self._casa.az));
+				casa_m =  (numpy.cos(self._casa.alt) * numpy.cos(self._casa.az)); 
+				# print 'l/m: %f, %f' % (casa_l, casa_m);
+				casa_l = casa_l/self._im._dl + self._im._npix/2;
+				casa_m = casa_m/self._im._dl + self._im._npix/2;
+				# print 'CasA: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._casa.ra, self._casa.dec, self._casa.alt, self._casa.az, casa_l, casa_m, self._im._dl);
 
 
 			# Create a circle in the skymap centered at the location of the moon.
-			# blacking out for now
-			self._im._skymap[moon_l-5:moon_l+5, moon_m-5:moon_m+5] = 1e10;	
+			# blacking out a couple of pixels for now. 
+			self._im._skymap[moon_m-1:moon_m+1, moon_l-1:moon_l+1] = 5e10;	
+			self._im._skymap[casa_m-1:casa_m+1, casa_l-1:casa_l+1] = 5e10;	
 			
 
-		self._imgplt.set_data (abs(self._im._skymap));
+		self._imgplt.set_data (abs(self._im._skymap[:,:]));
 
 		plt.title ('XX - %f' % self._im._tobs);
 		plt.draw();
+		plt.pause(0.001);
 		if self._wrpng == 1:
 			plt.savefig ('%s/%.0f_XX.png' % (self._fprefix,self._im._tobs));
 	
@@ -365,10 +389,15 @@ if __name__ == '__main__':
 
 	o.add_option('-m', '--mode', dest='mode', default='fft', 
 		help='Mode of imaging: dft or fft');
+
 	o.add_option('-n', '--npix', type='int', dest='npix', default=512,
 		help='Number of pixels in output image');
+
 	o.add_option('-s', '--sbnum', dest='sbnum', default='sb0',
 		help='Subband number being handled');
+
+	o.add_option('-l', '--loc', dest='loc', default='lofar',
+		help='Location of observatory');
 
 	opts, args = o.parse_args(sys.argv[1:])
 
@@ -381,7 +410,7 @@ if __name__ == '__main__':
 	acm, tobs, fobs = sb.readRec();
 	im.createImage (acm, tobs, fobs, [1, 0, 0, 0]);
 
-	pltwin = pltImage (im, opts.fout, pltmoon=0);
+	pltwin = pltImage (im, opts.loc, opts.fout, pltmoon=1);
 	# Generate output file name based on first timeinstant
 	print '--> Writing with prefix ', opts.fout;
 	fname = '%s/%.0f_XX.img' % (opts.fout, tobs);
