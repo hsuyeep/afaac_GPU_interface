@@ -18,7 +18,7 @@
 
 % pep/22Oct14
 
-function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, calx, caly, img, deb)
+function [acm_t, tobs_mjdsec, fobs, map, l] = gengpuimg(acm, tobs, fobs, chan, flagant, calx, caly, img, deb)
 	addpath ~/WORK/AARTFAAC/Afaac_matlab_calib/
 
 	nrec = size (acm, 1);
@@ -30,7 +30,9 @@ function [acm_t, tobs_mjdsec, fobs, map] = gengpuimg(acm, tobs, chan, flagant, c
 		chan = [1:63];
 	end;
     
-	fobs = 60000000; % Arbit value, not available from text file
+	if (isempty (fobs))
+		fobs = 60000000; % Arbit value, not available from text file
+	end;
 	t1 = triu(ones (288));
 	% tobs is in unix time seconds.
 	mjddateref = datenum (1858,11,17,00,00,00); % Start of MJD
