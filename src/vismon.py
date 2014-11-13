@@ -150,16 +150,17 @@ class imager:
 	# Public variables, shared between all class instances;
 	C = 2.9979245e8; # m/s
 
-	def __init__ (self, npix=512, mode='dft', fobs=60000000, sbnum='sb0', Npol=1):
+	def __init__ (self, npix=512, mode='dft', fobs=60000000, sbnum='sb0', pol='xx'):
 		self._npix = npix;
-		self._Npol = Npol;
+		self._pol = pol;
+		self._Npol = 1; # NOTE: Hardcoded!
 		self._skymap = numpy.asmatrix(numpy.zeros([self._npix, self._npix], 'f'));
 		self._tobs = -1; 
 		self._fobs = fobs;
 		self._mode = mode;
 		self._sbnum = sbnum;
 		self._meta = ctypes.create_string_buffer(subbandHandler.Hdrsize); # 512Byte file header.
-		print '--> Creating Imager in %s mode with npix %d' % (self._mode, self._npix);
+		print '--> Creating Imager in %s mode with npix %d for %s pol.' % (self._mode, self._npix, self._pol);
 
 		# Load antenna positions
 		mat_contents = sio.loadmat ('poslocal_outer.mat');
@@ -194,19 +195,18 @@ class imager:
 			self._wx = numpy.exp(-1j * k * self._poslocal[:,0] * self._l);
 			self._wy = numpy.exp(-1j * k * self._poslocal[:,1] * self._l);
 
-	def createImage (self, acm, tobs, fobs, pols):
+	def createImage (self, acm, tobs, fobs):
 		self._tobs = tobs;
 		if self._mode.lower() == 'dft':
-			self.createImageDFT (acm[0,:,:], tobs, fobs, pols);
+			self.createImageDFT (acm[0,:,:], tobs, fobs);
 		else:
-			self.createImageFFT (acm[0,:,:], tobs, fobs, pols);
+			self.createImageFFT (acm[0,:,:], tobs, fobs);
 
 	""" DFT based imager.
 		Arge: acm  = 4xNelemxNelem complex matrix
 			  tobs = time of observation in unix time
-			  pols = tuple of bools to control imaging of polarizations
 	"""
-	def createImageDFT (self, acm, tobs, fobs, pols):
+	def createImageDFT (self, acm, tobs, fobs):
 		self._tobs = tobs;
 		self._fobs = fobs;
 		# acm[0][:][:] = acm[0][:][:]+acm[0][:][:].conj().transpose();
@@ -254,7 +254,7 @@ class imager:
 			self._gridvis[N1+uidxh, vidxl+N1] = self._gridvis[N1+uidxh, vidxl+N1] + suhl * phasor;
 			self._gridvis[N1+uidxh, vidxh+N1] = self._gridvis[N1+uidxh, vidxh+N1] + suhh * phasor;
 		    
-	def createImageFFT (self, acm, tobs, fobs, pols):
+	def createImageFFT (self, acm, tobs, fobs):
 		# Grid visibilities;
 		self.gridVis (acm.flatten(1));
 
@@ -300,6 +300,7 @@ class pltImage:
 	def __init__ (self, im, location, fprefix='./',  wrpng=1, pltmoon=0):
 		self._wrpng = wrpng;
 		self._im = im;
+		self._nof_im = len(self._im); # Total number of images to display.
 		self._fprefix = fprefix;
 		self._pltmoon = pltmoon;
 		self._loc = location;
@@ -324,14 +325,14 @@ class pltImage:
 			print 'Matplotlib or pyephem not found! PNG Images written to disk.'
 			self._wrpng = 1;
 		else:
-			self._imgplt = plt.imshow (abs(self._im._skymap[:,:]), extent = [self._im._l[0], self._im._l[-1], self._im._m[0], self._im._m[-1]]);
+			self._imgplt = plt.imshow (abs(self._im[0]._skymap[:,:]), extent = [self._im[0]._l[0], self._im[0]._l[-1], self._im[0]._m[0], self._im[0]._m[-1]]);
 			plt.colorbar();
 			# plt.show();
 
 	def showImg (self):
 		if self._pltmoon == 1:
 			# Convert UTC unix time to datetime
-			self._obssite.date = datetime.datetime.fromtimestamp(self._im._tobs); 
+			self._obssite.date = datetime.datetime.fromtimestamp(self._im[0]._tobs); 
 
 			# Compute azi/alt
 			self._moon.compute(self._obssite);
@@ -346,31 +347,31 @@ class pltImage:
 				moon_l = -(numpy.cos(self._moon.alt) * numpy.sin(self._moon.az));
 				moon_m =  (numpy.cos(self._moon.alt) * numpy.cos(self._moon.az)); 
 				# print 'l/m: %f, %f' % (moon_l, moon_m);
-				moon_l = moon_l/self._im._dl + self._im._npix/2;
-				moon_m = moon_m/self._im._dl + self._im._npix/2;
+				moon_l = moon_l/self._im[0]._dl + self._im[0]._npix/2;
+				moon_m = moon_m/self._im[0]._dl + self._im[0]._npix/2;
 				# print 'Moon: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._moon.ra, self._moon.dec, self._moon.alt, self._moon.az, moon_l, moon_m, self._im._dl);
 
 				casa_l = -(numpy.cos(self._casa.alt) * numpy.sin(self._casa.az));
 				casa_m =  (numpy.cos(self._casa.alt) * numpy.cos(self._casa.az)); 
 				# print 'l/m: %f, %f' % (casa_l, casa_m);
-				casa_l = casa_l/self._im._dl + self._im._npix/2;
-				casa_m = casa_m/self._im._dl + self._im._npix/2;
+				casa_l = casa_l/self._im[0]._dl + self._im[0]._npix/2;
+				casa_m = casa_m/self._im[0]._dl + self._im[0]._npix/2;
 				# print 'CasA: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._casa.ra, self._casa.dec, self._casa.alt, self._casa.az, casa_l, casa_m, self._im._dl);
 
 
 			# Create a circle in the skymap centered at the location of the moon.
 			# blacking out a couple of pixels for now. 
-			self._im._skymap[moon_m-1:moon_m+1, moon_l-1:moon_l+1] = 5e10;	
-			self._im._skymap[casa_m-1:casa_m+1, casa_l-1:casa_l+1] = 5e10;	
+			self._im[0]._skymap[moon_m-1:moon_m+1, moon_l-1:moon_l+1] = 5e10;	
+			self._im[0]._skymap[casa_m-1:casa_m+1, casa_l-1:casa_l+1] = 5e10;	
 			
 
-		self._imgplt.set_data (abs(self._im._skymap[:,:]));
+		self._imgplt.set_data (abs(self._im[0]._skymap[:,:]));
 
-		plt.title ('XX - %f' % self._im._tobs);
+		plt.title ('%s - %f' % (self._im[0]._pol, self._im[0]._tobs));
 		plt.draw();
 		plt.pause(0.001);
 		if self._wrpng == 1:
-			plt.savefig ('%s/%.0f_XX.png' % (self._fprefix,self._im._tobs));
+			plt.savefig ('%s/%.0f_XX.png' % (self._fprefix,self._im[0]._tobs));
 	
 	
 if __name__ == '__main__':
@@ -399,18 +400,26 @@ if __name__ == '__main__':
 	o.add_option('-l', '--loc', dest='loc', default='lofar',
 		help='Location of observatory');
 
+	o.add_option('-p', '--pols', dest='pols', default='xx,xy,yx,yy',
+		help='Polarizations to image.');
+
 	opts, args = o.parse_args(sys.argv[1:])
 
 	sb = subbandHandler (opts.fin, opts.sbnum);
-	im = imager (opts.npix, opts.mode, 60000000, opts.sbnum);
-	irec = 0;
+	pols = ['xx', 'xy', 'yx', 'yy'];
+	im = [];
+	for pol in range (0,4):
+		im.append (imager (opts.npix, opts.mode, 60000000, opts.sbnum, pols[pol]));
 
+	irec = 0;
 
 	# First record reading
 	acm, tobs, fobs = sb.readRec();
-	im.createImage (acm, tobs, fobs, [1, 0, 0, 0]);
+	for pol in range (0,3):
+		im[pol].createImage (acm, tobs, fobs);
 
 	pltwin = pltImage (im, opts.loc, opts.fout, pltmoon=1);
+	"""
 	# Generate output file name based on first timeinstant
 	print '--> Writing with prefix ', opts.fout;
 	fname = '%s/%.0f_XX.img' % (opts.fout, tobs);
@@ -418,10 +427,12 @@ if __name__ == '__main__':
 	fid = open (fname, "wb");
 	im.writeMetaToFile (fid); # Write out the meta information.
 	im.writeImgToFile (fid);
+	"""
 
 	while irec < subbandHandler.Nsec2Rd:
 		acm, tobs, fobs = sb.readRec();
-		im.createImage (acm, tobs, fobs, [1, 0, 0, 0]);
+		for pol in range (0,3):
+			im[pol].createImage (acm, tobs, fobs);
 		pltwin.showImg();
-		im.writeImgToFile (fid);
+		# im.writeImgToFile (fid);
 		irec = irec + 1;

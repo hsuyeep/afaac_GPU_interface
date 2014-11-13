@@ -6,10 +6,11 @@
 % Note: text file format: time chan 2*41616 numbers. 
 % Currently assumes only a single timeslice
 
+% Updated to work on gpu2mat.py output, text data file is obsoleted.
+
 function [acc, tobs, fobs, map, goodant] = gengpusubarrayimage(fname, chan, stat, deb)
 	dat = load (fname);
     fprintf (2, 'Loaded file %s.\n', fname);
-	tobs = dat (1,1);
     
 	fobs = 60000000; % Arbit value, not available from text file
 

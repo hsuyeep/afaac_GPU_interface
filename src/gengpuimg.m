@@ -86,10 +86,10 @@ function [acm_t, tobs_mjdsec, fobs, map, l] = gengpuimg(acm, tobs, fobs, chan, f
 		end;
 	end;
 
+	l = [-1:0.01:1];
 	if img == 1
 		% Imaging part
 		load ('poslocal_outer.mat', 'poslocal');
-		l = [-1:0.01:1];
 		% map = zeros (nrec, length(l), length(l), npol);
 		map = zeros (nrec, 512, 512, npol);
 
