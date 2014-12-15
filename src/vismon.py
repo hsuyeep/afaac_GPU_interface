@@ -290,7 +290,7 @@ class imager:
 		# import pdb; pdb.set_trace();
 		t = numpy.fromfile (fid, dtype='float32',count=2);		
 		print 'tobs: %f, fobs: %f'% (t[0], t[1]);
-		img = numpy.fromfile (fid, dtype='float32',count=int(self._Npol, self._npix*self._npix));
+		img = numpy.fromfile (fid, dtype='float32',count=int(self._Npol*self._npix*self._npix));
 		return t[0], t[1], img;
 		
 
