@@ -2,16 +2,20 @@
 % Calibrate using pelican_sunAteamsub, and subsequently imaged.
 % pep/12Nov14
 % Arguments:
-%  fname : .mat filename generated from gpu2mat.py, corresponding to a siRAteam ngle subband.
+%  fname : .mat filename generated from gpu2mat.py, corresponding to a single subband.
 %  fobs  : Center frequency of the subband
+%  togif : Bool representing writing output to a .gif image
 
 
 % function gencalimg (fname, fobs, flagant)
-function [tobs, map] = gengpucalimg (fobs)
- 	load '/dop312_0/prasad/LBA_OUTER_09Nov14/08Nov14_231707_1415488620-1415488650.mat'
-	filename = '08Nov14_231707_1415488620.gif';
-	% load '/dop312_0/prasad/LBA_OUTER_09Nov14/08Nov14_231707_1415488651-1415488680.mat'
-	% filename = '08Nov14_231707_1415488651.gif';
+function [tobs, map] = gengpucalimg (fname, fobs, togif)
+	addpath ~/WORK/AARTFAAC/Afaac_matlab_calib/
+	fprintf (2, 'Working on file %s\n', fname);
+ 	load (fname); 
+	if (togif == 1)
+		giffilename = strcat (fname, '.gif');
+		fprintf (2, '--> Writing calibrated images to %s.\n', giffilename);
+	end;
 	load 'srclist3CR.mat'
 	poslocal = load ('poslocal_outer.mat', 'poslocal');
 	posITRF = load ('poslocal_outer.mat', 'posITRF');
@@ -40,7 +44,17 @@ function [tobs, map] = gengpucalimg (fobs)
 
 	[acm_t, tobs_mjd, fobs, map, l] = gengpuimg (acm, tobs, fobs, [1:63], [], [], [], 0, 0);
 
+	uncalimg = figure;
+	imagesc (l,l,squeeze(real(map)));
+	set (gca, 'XDir', 'Reverse');
+	set (gca, 'YDir', 'Normal');
+	set (gca, 'FontSize', 14);
+	colorbar;
+	caxis ([0 6]);
+	title (sprintf ('Uncalibrated imag: %s UTC, GPU Correlator', datestr(mjdsec2datenum(tobs_mjd))), 'FontSize', 14);
+
 	rec = 0;
+	calimg = figure;
 	clear pelican_sunAteamsub;
 	for ind = 1:size (acm_t,1)
 		fprintf (2, '--> Processing rec: %d, time: %.2f\n', rec, tobs_mjd(ind));
@@ -72,15 +86,15 @@ function [tobs, map] = gengpucalimg (fobs)
         xlabel('East $\leftarrow$ l $\rightarrow$ West', 'interpreter', 'latex', 'FontSize', 13);
 
     	drawnow;
-    	frame = getframe(1);
-    	im = frame2im(frame);
-    	[imind,cm] = rgb2ind(im,256);
-    	if rec == 0;
-        	imwrite(imind,cm,filename,'gif', 'Loopcount',inf);
-    	else
-        	imwrite(imind,cm,filename,'gif','WriteMode','append');
-    	end
+		if (togif == 1)
+    		frame = getframe(calimg);
+    		im = frame2im(frame);
+	    	[imind,cm] = rgb2ind(im,256);
+	    	if rec == 0;
+	        	imwrite(imind,cm,filename,'gif', 'Loopcount',inf);
+	    	else
+	        	imwrite(imind,cm,filename,'gif','WriteMode','append');
+	    	end
+		end;
 		rec = rec + 1;
-
-		
 	end;

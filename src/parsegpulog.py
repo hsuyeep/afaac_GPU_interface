@@ -13,35 +13,41 @@ import datetime;
 from pylab import *;
 import matplotlib.ticker as ticker
 
-keywords = ['exec', 'stats'];
+keywords = ['exec', 'stat'];
 if __name__ == "__main__":
-	# print '--> Operating on log file ', sys.argv[1];
+	print '--> Operating on log file ', sys.argv[1];
 	lineno = 0;
 	fl_lineno = 0;
 	fl_prog = re.compile ('\[(\d+)s, (\d+)\], stats (\d+)-(\d+); flagged: ([-+]?(\d+(\.\d*)?))% \((\d+)\)');
 	tim_prog = re.compile ('time: \[(\d+)s, (\d+)\], late: ([-+]?(\d+(\.\d*)?))s, exec: ([-+]?(\d+(\.\d*)?))');
-	max_size = 600000;
+	max_size = 1000000;
 
 	tim = numpy.zeros (max_size, dtype=numpy.int);
 	t_late = numpy.zeros (max_size, dtype=numpy.float16);
 	t_exec = numpy.zeros (max_size, dtype=numpy.float16);
-	st_tim = numpy.zeros ((6, max_size), dtype=numpy.float16);
+	st_tim = numpy.zeros ((6, max_size), dtype=numpy.uint32);
 	st_flag = numpy.zeros ((6, max_size), dtype=numpy.float16);
 
-	# with open (sys.argv[1], 'r') as f:
 	if sys.argv[1] == '-':
 		f = sys.stdin;
 	else:
 		f = open (sys.argv[1], 'r');
 
+	first_exec_line = 0;
  	for line in f:
 		if keywords[0] in line:
 			mat = tim_prog.match (line);
-			# print 'Extracted: ', int(mat.group(1));
+			if first_exec_line == 0:
+				first_exec_line = int(mat.group(1));
+				print 'First timestamp : ', first_exec_line;
+			lineno = int(mat.group(1)) - first_exec_line;
+			if (lineno < 0):
+				print '### ERR ###'; continue;
 			tim[lineno] = int(mat.group(1));
 			t_late[lineno] = float(mat.group(3));
 			t_exec[lineno] = float(mat.group(6));
-			lineno = lineno+1;
+			print 'lineno:', lineno, 'Tim: ', tim[lineno], 'late/exec: ', t_late[lineno], t_exec[lineno];
+			# lineno = lineno+1;
 
 #			strsplit = line.split (',');
 #			tim[lineno] = int((strsplit[0].split(':')[1])[2:-1]); # Unix sec
@@ -49,31 +55,63 @@ if __name__ == "__main__":
 #			t_exec = float (strsplit[3].split(':')[1][:-1]);
 
 		elif keywords[1] in line:
+		# if 'stat' in line:
 			# simulate sscanf (line, "[%ds, %d], stats %d-%d; flagged: %d%% (%d)", 
 			#                  &unixtim, &bsn, &dip0, &dip1, &flagpercent, &dummy)
 			mat = fl_prog.match (line);
+			# print line, ' ', mat.group(1);
+			if not mat:
+				print '### ERR### ', line;
+				continue;
+
+			lineno = int(mat.group(1)) - first_exec_line;
+			if (lineno < 0):
+				print '### ERR ###'; continue;
 			st = int(mat.group(3))/48;
 			if st < 0 | st > 6:
 				print '### Station: ', st;
-			st_tim[st][lineno] = mat.group(1); # Time of this record
+			st_tim[st][lineno] = numpy.uint32(mat.group(1)); # Time of this record
+			print 'ST: ', st, 'lineno: ', lineno, 'Tim: ', st_tim[st][lineno];
 			st_flag[st][lineno] = mat.group(5); # % data flagged.
-			# print 'St: %d, Tim: %.0f, linno: %d, flag:%.2f'%(st,float(mat.group(1)),lineno,float(mat.group(5)));
+			# if tim[lineno] == 0:
+				# tim[lineno] = st_tim[st][lineno];
 			# if st == 5:
-		# 		lineno = lineno+1;
+		 	# 	lineno = lineno+1;
 			
-		else:
-			continue;
+		if lineno >= max_size:
+			break;
+		# else:
+	# 		continue;
 
 	print '--> Parsed ', lineno, ' lines.';
 	print '--> Start time:', datetime.datetime.fromtimestamp(tim[0]).strftime('%Y-%m-%d %H:%M:%S')
 	print '--> End   time:', datetime.datetime.fromtimestamp(tim[lineno-1]).strftime('%Y-%m-%d %H:%M:%S')
+	
+	sel = numpy.nonzero(tim[1:lineno]);
+	tmp = numpy.shape(sel);
+	print 'Size of sel: ', tmp, 'len:', len(sel), 'tmp:', tmp[1];
 
+	fig0 = figure;
+	plot (tim[sel]);
+	for ind in range (0,tmp[1]-1):
+		print ind, 'sel:', sel[0][ind], 'tim:', tim[sel[0][ind]];
+
+	for ind in range (0, 1000):
+		print 'tim: ', tim[ind], 'st_tim: ', st_tim[0][ind];
+	# Select only those time instants which arrived.
+	# sel = sel[1:-1];
+
+	print '#### SEL STARTS ####'
+	# for ind in range (0, 1000):
+# 		print sel[ind];
+	# import pdb;
+	# pdb.set_trace();
 	# Start plotting
 	fig1 = figure(figsize=(12,6));
 
 	ax = fig1.add_subplot (2,2,1);
-	# plot ((tim[1:lineno]-tim[1])/3600.0, t_late[1:lineno]); # Ignore first record
-	plot (tim[1:lineno]-tim[1], 'o'); # Ignore first record
+	# plot ((tim[1:lineno]-tim[1])/3600.0, t_late[1:lineno], 'o'); # Ignore first record
+	plot (tim[sel]-tim[1], t_late[sel], '.'); # Ignore first record
 	xlabel ('Time (hours from %s)'%(datetime.datetime.fromtimestamp (tim[1])));
 	ylabel ('Late');
 
@@ -84,7 +122,8 @@ if __name__ == "__main__":
 	ax.set_ylabel('Frequency (000s)');
 
 	subplot (2,2,3);
-	plot (tim[1:lineno]/3600, t_exec[1:lineno]);
+	plot (sel[1:-1]);
+	# plot (tim[sel]/3600, t_exec[sel], '.');
 	xlabel ('Time (hrs from %s)'%(datetime.datetime.fromtimestamp (tim[1])));
 	ylabel ('Exec');
 
@@ -99,9 +138,11 @@ if __name__ == "__main__":
 
 	fig2 = figure(figsize=(12,6));
 	st_name = ['CS002', 'CS003', 'CS004', 'CS005', 'CS006', 'CS007'];
+	print 'Plot 2: lineno: ', lineno;
 	for st in range (0,6):
 		subplot (2,6,st+1);
-		plot ((tim[1:lineno]-tim[1])/3600.0, st_flag[st][1:lineno]);
+		plot ((tim[sel]-tim[1])/3600.0, st_flag[st][sel], '.');
+		# plot (tim[numpy.nonzero(tim)],'.');
 		xlabel (st_name[st]);
 		# xlabel ('Time (secs from %s)'%(datetime.datetime.fromtimestamp (tim[1])));
 		ylabel ('Flag %');
