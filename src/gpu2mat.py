@@ -18,7 +18,7 @@ def main ():
 		sys.exit (-1);
 
 	nelem  = 288;       
-	nrec = 30;
+	nrec = 85;
 	nbline= nelem*(nelem+1)/2; 
 	nchan = 63;
 	npol = 4;

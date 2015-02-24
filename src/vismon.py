@@ -156,8 +156,8 @@ class subbandHandler:
 		self._vis = numpy.reshape (numpy.asarray (struct.unpack ("ff"*self.Nbline*self.Nchan*self.Npol, rec[512:])),[self.Nbline, self.Nchan, self.Npol, 2]);
 
 		# Integrating over all channels in a subband;
-		# self._vis_int = numpy.mean (self._vis, axis=1);
-		self._vis_int = self._vis[:,32,:,:];
+		self._vis_int = numpy.mean (self._vis, axis=1);
+		# self._vis_int = self._vis[:,32,:,:];
 
 		# NOTE: Required to set acm to zero due to accumulation on _acm_resh,
 		# which is a view (referenced object).
@@ -324,7 +324,7 @@ class imager:
 class pltImage:
 	'Class representing a plot device on which images are shown'
 
-	def __init__ (self, im, location, fprefix='./',  wrpng=1, pltmoon=0):
+	def __init__ (self, im, location, fprefix='./',  wrpng=1, pltmoon=1):
 		self._wrpng = wrpng;
 		self._im = im;
 		self._nof_im = len(self._im); # Total number of images to display.
@@ -352,7 +352,8 @@ class pltImage:
 			print 'Matplotlib or pyephem not found! PNG Images written to disk.'
 			self._wrpng = 1;
 		else:
-			self._imgplt = plt.imshow (abs(self._im[0]._skymap[:,:]), extent = [self._im[0]._l[0], self._im[0]._l[-1], self._im[0]._m[0], self._im[0]._m[-1]]);
+			self._imgplt = plt.imshow (abs(self._im[0]._skymap[:,:]), extent = [self._im[0]._l[-1], self._im[0]._l[0], self._im[0]._m[-1], self._im[0]._m[0]]);
+			plt.grid;
 			plt.colorbar();
 			# plt.show();
 
@@ -373,9 +374,9 @@ class pltImage:
 
 				moon_l = -(numpy.cos(self._moon.alt) * numpy.sin(self._moon.az));
 				moon_m =  (numpy.cos(self._moon.alt) * numpy.cos(self._moon.az)); 
-				# print 'l/m: %f, %f' % (moon_l, moon_m);
-				moon_l = moon_l/self._im[0]._dl + self._im[0]._npix/2;
-				moon_m = moon_m/self._im[0]._dl + self._im[0]._npix/2;
+				print 'moon l/m: %f, %f' % (moon_l, moon_m);
+				# moon_l = moon_l/self._im[0]._dl + self._im[0]._npix/2;
+				# moon_m = moon_m/self._im[0]._dl + self._im[0]._npix/2;
 				# print 'Moon: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._moon.ra, self._moon.dec, self._moon.alt, self._moon.az, moon_l, moon_m, self._im._dl);
 
 			if self._casa.alt < 0:
@@ -383,22 +384,18 @@ class pltImage:
 			else:
 				casa_l = -(numpy.cos(self._casa.alt) * numpy.sin(self._casa.az));
 				casa_m =  (numpy.cos(self._casa.alt) * numpy.cos(self._casa.az)); 
-				# print 'l/m: %f, %f' % (casa_l, casa_m);
-				casa_l = casa_l/self._im[0]._dl + self._im[0]._npix/2;
-				casa_m = casa_m/self._im[0]._dl + self._im[0]._npix/2;
+				print 'CasA l/m: %f, %f' % (casa_l, casa_m);
+				# casa_l = casa_l/self._im[0]._dl + self._im[0]._npix/2;
+				# casa_m = casa_m/self._im[0]._dl + self._im[0]._npix/2;
 				# print 'CasA: RA/dec = %f/%f, alt/az = %f/%f, lind/mind = %f/%f, dl=%f'% (self._casa.ra, self._casa.dec, self._casa.alt, self._casa.az, casa_l, casa_m, self._im._dl);
-
-
-			# Create a circle in the skymap centered at the location of the moon.
-			# blacking out a couple of pixels for now. 
-			if self._moon.alt > 0:
-				self._im[0]._skymap[moon_m-1:moon_m+1, moon_l-1:moon_l+1] = 5e10;	
-			self._im[0]._skymap[casa_m-1:casa_m+1, casa_l-1:casa_l+1] = 5e10;	
-			
 
 		self._imgplt.set_data (abs(self._im[0]._skymap[:,:]));
 
 		plt.title ('%s - %f' % (self._im[0]._pol, self._im[0]._tobs));
+		# if self._moon.alt > 0:
+			# self._im[0]._skymap[moon_m-1:moon_m+1, moon_l-1:moon_l+1] = 5e10;	
+			# plt.annotate ('*',xy=(-moon_l,-moon_m),color='yellow');
+		# plt.annotate ('*',xy=(-casa_m,casa_l),color='white');
 		plt.draw();
 		plt.pause(0.001);
 		if self._wrpng == 1:
