@@ -90,9 +90,10 @@ class subbandHandler:
 		file:filename  = If gpu output is dumped to disk
 		tcp:port       = if gpu output is streamed over network
 	"""
-	def __init__ (self, desc, sbnum):
+	def __init__ (self, desc, sbnum, fobs):
 		self._streamtype = desc.split(':')[0];
 		self._sbnum = sbnum;
+		self._fobs = fobs; 
 
 		if self._streamtype == 'file':
 			print '--> Operating on file ', desc.split(':')[1];
@@ -152,7 +153,6 @@ class subbandHandler:
 		
 		(magic, pad0, self._tobs, endTime) = struct.unpack ("<IIdd", rec[0:24]);
 		print 'Start: %.2f, End: %.2f' % (self._tobs, endTime);
-		self._fobs = 60000000; # TODO: Meta information needed here!
 		self._vis = numpy.reshape (numpy.asarray (struct.unpack ("ff"*self.Nbline*self.Nchan*self.Npol, rec[512:])),[self.Nbline, self.Nchan, self.Npol, 2]);
 
 		# Integrating over all channels in a subband;
@@ -187,7 +187,7 @@ class imager:
 		self._mode = mode;
 		self._sbnum = sbnum;
 		self._meta = ctypes.create_string_buffer(subbandHandler.Hdrsize); # 512Byte file header.
-		print '--> Creating Imager in %s mode with npix %d for %s pol.' % (self._mode, self._npix, self._pol);
+		print '--> Creating Imager in %s mode with npix %d for %s pol at %f Hz.' % (self._mode, self._npix, self._pol, self._fobs);
 
 		# Load antenna positions
 		mat_contents = sio.loadmat ('poslocal_outer.mat');
@@ -431,13 +431,16 @@ if __name__ == '__main__':
 	o.add_option('-p', '--pols', dest='pols', default='xx,xy,yx,yy',
 		help='Polarizations to image.');
 
+	o.add_option('-f', '--freq', dest='freq', default=60000000,
+		help='Center frequency of the subband to be imaged.');
+
 	opts, args = o.parse_args(sys.argv[1:])
 
-	sb = subbandHandler (opts.fin, opts.sbnum);
+	sb = subbandHandler (opts.fin, opts.sbnum, int(opts.freq));
 	pols = ['xx', 'xy', 'yx', 'yy'];
 	im = [];
 	for pol in range (0,4):
-		im.append (imager (opts.npix, opts.mode, 60000000, opts.sbnum, pols[pol]));
+		im.append (imager (opts.npix, opts.mode, int(opts.freq), opts.sbnum, pols[pol]));
 
 	irec = 0;
 

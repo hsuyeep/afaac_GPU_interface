@@ -50,14 +50,22 @@ if __name__ == '__main__':
 	(magic, pad0, tlast, endTime) = struct.unpack ("<IIdd", rec[0:24]);
 	
 	print 'Timerange : %f - %f' % (tfirst, tlast);
-	assert (tstart < tlast);
+	# assert (tstart < tlast);
 	assert (tend > tfirst);
 	recs2skip = int(tstart - tfirst);
+	print '<-- Skipping %d recs.' % recs2skip;
 	fid.seek (recs2skip*Recsize, 0);
 
 	rec = fid.read (Recsize);
 	(magic, pad0, tcurr, endTime) = struct.unpack ("<IIdd", rec[0:24]);
 
+	while ((tcurr > (tstart + 5)) or (tcurr < (tstart - 5))):  # Missing data records in between
+		print 'Tcurr: %f, Tstart: %f' % (tcurr, tstart);
+		recs2skip = int(tstart - tcurr);
+		fid.seek (recs2skip*Recsize, 1);
+		rec = fid.read (Recsize);
+		(magic, pad0, tcurr, endTime) = struct.unpack ("<IIdd", rec[0:24]);
+			
 	while (tcurr < tend):
 		bytearr = bytearray (rec);
 		fout.write (bytearr);
