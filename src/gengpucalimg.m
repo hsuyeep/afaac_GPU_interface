@@ -13,13 +13,15 @@
 % function gencalimg (fname, fobs, flagant)
 function [tobs, map] = gengpucalimg (fname, fobs, togif, calall)
 	addpath ~/WORK/AARTFAAC/Afaac_matlab_calib/
-	addpath ~/WORK/Matlab/ofek_matlab/fun/
+	addpath ~/WORK/Matlab/ofek_matlab/fun/ephem/
 
 	fprintf (2, 'Working on file %s\n', fname);
  	load (fname); 
 	if (togif == 1)
-		giffilename = strcat (fname, '.gif');
-		fprintf (2, '--> Writing calibrated images to %s.\n', giffilename);
+		uncalgiffilename = strcat (fname, '_uncal.gif');
+		calateamgiffilename = strcat (fname, '_calateam.gif');
+		calgiffilename = strcat (fname, '_cal.gif');
+		fprintf (2, '--> Writing calibrated images to %s.\n', calgiffilename);
 	end;
 	load 'srclist3CR.mat'
 	poslocal = load ('poslocal_outer.mat', 'poslocal');
@@ -67,9 +69,9 @@ function [tobs, map] = gengpucalimg (fname, fobs, togif, calall)
 % 	title (sprintf ('Uncalibrated imag: %s UTC, GPU Correlator', datestr(mjdsec2datenum(tobs_mjd))), 'FontSize', 14);
 
 	rec = 0;
-	calimg = figure;
-    calimgAteam = figure;
-    uncalimg = figure;
+	calimg      = figure ('Position', [0 100 800 400]);
+    calimgAteam = figure ('Position', [200 100 800 400]);
+    uncalimg    = figure ('Position', [400 100 800 400]);
 	clear pelican_sunAteamsub;
     pol = 1; % XX
     
@@ -153,7 +155,7 @@ function [tobs, map] = gengpucalimg (fname, fobs, togif, calall)
             plotimg (l,l,squeeze(uncalmap(ind,:,:)), tobs, 'Uncal. map', srclist3CR, moon_l,moon_m);
             subplot (122);
             % plotimg (l,l,squeeze(uncalmap(ind,:,:)) - squeeze(uncalmap(ind-1,:,:)), tobs, 'Diff', srclist3CR, moon_l,moon_m);
-            plotimg (l,l,squeeze(uncalmap(ind,:,:)) - squeeze(uncalmap(2,:,:)), tobs, 'Diff', srclist3CR, moon_l,moon_m);
+            plotimg (l,l,squeeze(uncalmap(ind,:,:)) - squeeze(uncalmap(ind-1,:,:)), tobs, 'Diff', srclist3CR, moon_l,moon_m);
            
             acm_i = acm_i./ sqrt (diag(acm_i) * diag(acm_i).');
             rem_ants = 288 - length (sol.flagant);
@@ -199,13 +201,31 @@ function [tobs, map] = gengpucalimg (fname, fobs, togif, calall)
     		im = frame2im(frame);
 	    	[imind,cm] = rgb2ind(im,256);
 	    	if rec == 0;
-	        	imwrite(imind,cm,giffilename,'gif', 'Loopcount',inf);
+	        	imwrite(imind,cm,calgiffilename,'gif', 'Loopcount',inf);
 	    	else
-	        	imwrite(imind,cm,giffilename,'gif','WriteMode','append');
+	        	imwrite(imind,cm,calgiffilename,'gif','WriteMode','append');
+	    	end
+
+    		frame = getframe(calimgAteam);
+    		im = frame2im(frame);
+	    	[imind,cm] = rgb2ind(im,256);
+	    	if rec == 0;
+	        	imwrite(imind,cm,calateamgiffilename,'gif', 'Loopcount',inf);
+	    	else
+	        	imwrite(imind,cm,calateamgiffilename,'gif','WriteMode','append');
+	    	end
+
+    		frame = getframe(uncalimg);
+    		im = frame2im(frame);
+	    	[imind,cm] = rgb2ind(im,256);
+	    	if rec == 0;
+	        	imwrite(imind,cm,uncalgiffilename,'gif', 'Loopcount',inf);
+	    	else
+	        	imwrite(imind,cm,uncalgiffilename,'gif','WriteMode','append');
 	    	end
 		end;
 		rec = rec + 1;
-        pause;
+        % pause;
 	end;
     
     function plotimg (l,m,img, tobs, tit, srclist3CR, moon_l,moon_m)
