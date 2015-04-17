@@ -86,7 +86,7 @@ function [tobs, map] = gengpucalimg (fname, fobs, togif, calall)
                 antmask(flagant(ant),:) = 1; antmask(:,flagant(ant)) = 1;
     end;
   
-    for ind = 1:size (acm_t,1)-1
+    for ind = 1:2 % size (acm_t,1)-1
 		fprintf (2, '--> Processing rec: %d, time: %.2f\n', rec, tobs_mjd(ind));
 		tobs = tobs_mjd(ind);
 
