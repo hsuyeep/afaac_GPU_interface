@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 // Data format of the AARTFAAC Uniboard output packets.
 typedef struct                                                                     
@@ -47,8 +48,11 @@ typedef struct
 int Done = 0;
 int main (int argc, char *argv[])
 { FILE *fin[4] = {NULL,};
-  int i=0, nvalidfiles=0, pktno=0, rd=0;
+  int i=0, j=0, nvalidfiles=0, pktno=0, rd=0;
   UniUDPPktType *uni = NULL;
+  unsigned short lochdr[11]; // 22Byte SDO header
+  UniHdrType *uptr = (UniHdrType*) lochdr;
+  unsigned short *sptr = NULL;
 
   for (i=0; i<argc-1; i++)
   { if ((fin[i]=fopen (argv[i+1], "rb")) == NULL)
@@ -68,7 +72,12 @@ int main (int argc, char *argv[])
 		 != sizeof (UniUDPPktType)) 
 	  { fprintf (stderr, "Error in reading from file %d.\n", i); Done=1; break;}
 
-	  fprintf (stderr, "%llu/0x%LX ", uni[i].hdr.rsp_bsn, uni[i].hdr.rsp_bsn); 
+      sptr = (unsigned short*)(&uni[i].hdr);
+      for (j=0; j<11; j++)
+        lochdr[j] = ntohs(sptr[j]);
+
+      fprintf (stderr, "clk: %d, mode: %d, lane: %d, station: %d, w2blk: %d, b2pkt: %d, bsn: 0x%LX", uptr->rsp_rsp_clock, uptr->rsp_sdo_mode, uptr->rsp_lane_id, uptr->rsp_station_id, uptr->nof_words_per_block, uptr->nof_blocks_per_packet, uptr->rsp_bsn);
+	  // fprintf (stderr, "%llu/0x%LX ", uni[i].hdr.rsp_bsn, uni[i].hdr.rsp_bsn); 
     }
 	fprintf (stderr, "\n");
     pktno++;

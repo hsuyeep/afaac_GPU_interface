@@ -188,7 +188,7 @@ for ind = 1:nrec
     text (Moon_l(ind), Moon_m(ind), '*', 'Color', 'yellow');
     drawnow();
     if (gif==1)
-        frame = getframe(1);
+        frame = getframe(f1);
         im = frame2im(frame);
         [imind,cm] = rgb2ind(im,256);
         if ind == 1;
@@ -233,9 +233,7 @@ rfi_m = find (m<-0.22 & m>-0.4);
 for ind = 1:nrec
     % acc = acm_fdiff(ind,goodant, goodant);
     acc = acctx_ts(ind, goodant, goodant);
-    [map63(ind,:,:), calmap, calvis, l, m] = ... 
-                    fft_imager_sjw_radec (acc, uloc_flag(:), vloc_flag(:), ...
-										gparm, [], [], tobs_mjdsec(ind), freq, 0);                                    
+    [map63(ind,:,:), calmap, calvis, l, m] = fft_imager_sjw_radec (acc, uloc_flag(:), vloc_flag(:),	gparm, [], [], tobs_mjdsec(ind), freq, 0);                                    
                                     
     imagesc (l, m, abs(squeeze(map63(ind,:,:)))); colorbar;
     % caxis ([0 2e11]);
