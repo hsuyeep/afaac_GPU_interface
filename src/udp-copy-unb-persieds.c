@@ -236,6 +236,7 @@ int main(int argc, char **argv)
     } 
     else 
     { memcpy (&outpkt.hdr, &inpkt->hdr, sizeof (UniHdrType));
+      outcnt = 0;
 	  for (t=0; t<NR_TSLICE_PKT; t++)
 	  {   for (sb=0; sb<sb_sel_size; sb++)
 	      {   for (dip=0; dip<dip_sel_size; dip++)
@@ -246,7 +247,7 @@ int main(int argc, char **argv)
                   outpayload[outcnt]   = re;
                   outpayload[outcnt+1] = im;
                   outcnt+=2;
-	              fprintf(stderr, "SDO timesample: %d, sb: %d, dip: %02d, re/im: %7d / %7d.\n",t,sb,dip,re,im);
+	              // fprintf(stderr, "SDO timesample: %d, sb: %d, dip: %02d, re/im: %7d / %7d.\n",t,sb,dip,re,im);
 	          }
 	      }
 	  }

@@ -22,8 +22,10 @@ typedef struct
   unsigned long long rsp_bsn:50;        // Two timeslices share the same BSN       
 }__attribute ((__packed__)) UniHdrType ;                                                  
                                                                                    
-#define NRUNISUBBANDS 8                                                            
-#define NRUNIDIPOLES 96                                                               
+// #define NRUNISUBBANDS 8                                                            
+// #define NRUNIDIPOLES 96                                                               
+#define NRUNISUBBANDS 6                                                            
+#define NRUNIDIPOLES 3                                                               
 /* Uniboard data format:
  UDPhdr->userhdr(22B)->
  |d0_sb0_t0_p0_[r,i]...d95_sb0_t0_p1_[r,i]|... //subband 0

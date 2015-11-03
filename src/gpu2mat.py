@@ -18,9 +18,11 @@ def main ():
 		sys.exit (-1);
 
 	nelem  = 288;       
-	nrec = 30;
+	# nelem  = 576;       
+	nrec = 2;
 	nbline= nelem*(nelem+1)/2; 
-	nchan = 63;
+	# nchan = 63;
+	nchan = 15;
 	npol = 4;
 
 	hdrsize = 512;
